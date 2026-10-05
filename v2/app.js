@@ -971,8 +971,8 @@ const PP = (() => {
    Revealed straight into the full panel with iteration 02's widget reveal
    (ProtoPie recording cloud.protopie.io/p/041e0f998b5182ed0ca8ce6d/r/0e6f5901),
    as soon as the on-screen product cards have landed:
-     t = 0     the grid pushes down (the box grows 0 → 459, products land at
-               Figma y 615) on the handoff spring
+     t = 0     the grid pushes down (the box grows 0 → 464, products land at
+               Figma y 620) on the handoff spring
      t = 0     the panel scales 90% → 100% and rises 20px on the SAME spring
      t = 17ms  …and fades in over 300ms on the recorded ease-out (REVEAL_FADE)
      t = 33ms  the header rises 10px, fading in from 50ms
@@ -997,35 +997,35 @@ const PP = (() => {
   const B = '../assets/brands/';
 
   /* Cards — 14 brand flagships, 1:1 with State 15 · Hierarchy's "Cards" rail (1231:10207);
-     image boxes are Figma's (left, top, width, height) inside the 204×136 media */
+     image boxes are Figma's (left, top, width, height) inside the 204×128 media */
   const PHONE_CARDS = [
-    { id: '1231:10208', brand: 'Apple', tint: '#fff3ea', img: 'apple',    box: [53.35, 1.59, 96.856, 132.082], reviews: '33.8K', logo: { mark: 'apple', w: 11, h: 11, label: 'Apple' },
+    { id: '1231:10208', brand: 'Apple', tint: '#fff3ea', img: 'apple',    box: [56.216, 1.496, 91.159, 124.313], reviews: '33.8K', logo: { mark: 'apple', w: 11, h: 11, label: 'Apple' },
       name: 'iPhone 17 Pro Max', now: '4,649', was: '5,099', off: '8% off', specs: ['Pro camera', '256GB', 'Cosmic Orange', '4.5'] },
-    { id: '1231:10245', brand: 'Samsung', tint: '#f2f3f7', img: 'samsung',  box: [37.68, -22.82, 133.311, 181.796], reviews: '50.5K', logo: { mark: 'samsung', w: 52.56, h: 7.92 },
+    { id: '1231:10245', brand: 'Samsung', tint: '#f2f3f7', img: 'samsung',  box: [41.461, -21.474, 125.469, 171.102], reviews: '50.5K', logo: { mark: 'samsung', w: 52.56, h: 7.92 },
       name: 'Galaxy S25 Ultra', now: '2,799', was: '5,099', off: '45% off', specs: ['S Pen & work', '256GB', 'Titanium Grey', '4.7'] },
-    { id: '1231:10281', brand: 'Google', tint: '#eff6f0', img: 'google',   box: [39.58, -17.65, 124.096, 169.229], reviews: '1', logo: { mark: 'google', w: 11, h: 11, label: 'Google' },
+    { id: '1231:10281', brand: 'Google', tint: '#eff6f0', img: 'google',   box: [43.252, -16.609, 116.796, 159.274], reviews: '1', logo: { mark: 'google', w: 11, h: 11, label: 'Google' },
       name: 'Pixel 10 Pro', now: '3,584', note: 'Lowest in 7 days', specs: ['Google AI', '256GB', 'Jade', '5.0'] },
-    { id: '1231:10320', brand: 'Xiaomi', tint: '#f8f1ee', img: 'xiaomi',   box: [45.54, -11.14, 115.186, 157.079], reviews: '287', logo: { mark: 'xiaomi', w: 11, h: 11, label: 'Xiaomi' },
+    { id: '1231:10320', brand: 'Xiaomi', tint: '#f8f1ee', img: 'xiaomi',   box: [48.863, -10.489, 108.411, 147.839], reviews: '287', logo: { mark: 'xiaomi', w: 11, h: 11, label: 'Xiaomi' },
       name: 'Xiaomi 15T', now: '1,679', was: '1,999', off: '16% off', specs: ['Max storage', '512GB', 'Rose Gold', '4.4'] },
-    { id: '1231:10357', brand: 'Honor', tint: '#eef6f6', img: 'honor',    box: [54.54, 3.29, 94.911, 129.43], reviews: '84', logo: { mark: 'honor', w: 41.597, h: 8 },
+    { id: '1231:10357', brand: 'Honor', tint: '#eef6f6', img: 'honor',    box: [57.336, 3.092, 89.328, 121.816], reviews: '84', logo: { mark: 'honor', w: 41.597, h: 8 },
       name: 'Magic 8 Pro', now: '3,499', was: '5,448', off: '35% off', specs: ['AI camera', '512GB', 'Sky Cyan', '4.7'] },
-    { id: '1231:10393', brand: 'OnePlus', tint: '#f3f3f5', img: 'oneplus',  box: [40.84, -13.28, 119.067, 162.372], reviews: '524', logo: { mark: 'oneplus', w: 11, h: 11, label: 'OnePlus' },
+    { id: '1231:10393', brand: 'OnePlus', tint: '#f3f3f5', img: 'oneplus',  box: [44.439, -12.494, 112.063, 152.82], reviews: '524', logo: { mark: 'oneplus', w: 11, h: 11, label: 'OnePlus' },
       name: 'OnePlus 15', now: '3,199', note: 'Selling out fast', specs: ['Performance', '512GB', 'Infinite Black', '4.2'] },
-    { id: '1231:10429', brand: 'HUAWEI', tint: '#fff4ec', img: 'huawei',   box: [60.46, 6.94, 89.152, 121.576], reviews: '33', logo: { mark: 'huawei', w: 14.602, h: 11, label: 'HUAWEI' },
+    { id: '1231:10429', brand: 'HUAWEI', tint: '#fff4ec', img: 'huawei',   box: [62.908, 6.536, 83.907, 114.424], reviews: '33', logo: { mark: 'huawei', w: 14.602, h: 11, label: 'HUAWEI' },
       name: 'Pura 90s Pro Max', now: '3,999', was: '4,499', off: '11% off', specs: ['Tele zoom', '512GB', 'Orange Ocean', '4.3'] },
-    { id: '1231:10466', brand: 'motorola', tint: '#f6f1ec', img: 'motorola', box: [48.18, -5.05, 104.926, 143.088], reviews: '7', logo: { mark: 'motorola', w: 11, h: 11, label: 'motorola' },
+    { id: '1231:10466', brand: 'motorola', tint: '#f6f1ec', img: 'motorola', box: [51.349, -4.756, 98.754, 134.671], reviews: '7', logo: { mark: 'motorola', w: 11, h: 11, label: 'motorola' },
       name: 'Edge 70 Pro', now: '2,499', was: '2,999', off: '16% off', specs: ['Pantone design', '512GB', 'Chicory Coffee', '4.7'] },
-    { id: '1231:10503', brand: 'Nothing', tint: '#f4f4f5', img: 'nothing',  box: [38.86, -15.66, 123.665, 168.642], reviews: '13', logo: { letter: 'N', label: 'Nothing' },
+    { id: '1231:10503', brand: 'Nothing', tint: '#f4f4f5', img: 'nothing',  box: [42.571, -14.742, 116.391, 158.722], reviews: '13', logo: { letter: 'N', label: 'Nothing' },
       name: 'Phone (3)', now: '2,098', was: '2,799', off: '25% off', specs: ['Unique design', '256GB', 'Black', '4.6'] },
-    { id: '1231:10540', brand: 'OPPO', tint: '#f3f3f6', img: 'oppo',     box: [53.44, 1.68, 97.264, 132.639], reviews: '4', logo: { mark: 'oppo', w: 33.6547, h: 8 },
+    { id: '1231:10540', brand: 'OPPO', tint: '#f3f3f6', img: 'oppo',     box: [56.297, 1.582, 91.543, 124.837], reviews: '4', logo: { mark: 'oppo', w: 33.6547, h: 8 },
       name: 'Reno13 Pro', now: '1,499', was: '1,899', off: '21% off', specs: ['Portraits', '512GB', 'Graphite Grey', '3.7'] },
-    { id: '1231:10576', brand: 'vivo', tint: '#f8f4ee', img: 'vivo',     box: [57.55, 5.33, 89.04, 121.424], reviews: '269', logo: { mark: 'vivo', w: 30.5018, h: 8 },
+    { id: '1231:10576', brand: 'vivo', tint: '#f8f4ee', img: 'vivo',     box: [60.162, 5.014, 83.803, 114.281], reviews: '269', logo: { mark: 'vivo', w: 30.5018, h: 8 },
       name: 'X300 Pro', now: '3,829', was: '4,699', off: '18% off', specs: ['ZEISS camera', '512GB', 'Dune Brown', '4.2'] },
-    { id: '1231:10612', brand: 'TECNO', tint: '#f3f4f6', img: 'tecno',    box: [38.88, -17.54, 125.868, 171.646], reviews: '2.3K', logo: { letter: 'T', label: 'TECNO' },
+    { id: '1231:10612', brand: 'TECNO', tint: '#f3f4f6', img: 'tecno',    box: [42.59, -16.508, 118.464, 161.549], reviews: '2.3K', logo: { letter: 'T', label: 'TECNO' },
       name: 'POVA Slim 5G', now: '949', note: 'Selling out fast', specs: ['Slim design', '256GB', 'Cool Black', '4.3'] },
-    { id: '1231:10648', brand: 'realme', tint: '#f6f2fb', img: 'realme',   box: [47.01, -7.26, 109.648, 149.527], reviews: '969', logo: { letter: 'r', label: 'realme' },
+    { id: '1231:10648', brand: 'realme', tint: '#f6f2fb', img: 'realme',   box: [50.246, -6.837, 103.198, 140.731], reviews: '969', logo: { letter: 'r', label: 'realme' },
       name: 'C100i', now: '529', was: '649', off: '18% off', specs: ['Big battery', '128GB', 'Dawn Purple', '4.1'] },
-    { id: '1231:10685', brand: 'Infinix', tint: '#eff6f1', img: 'infinix',  box: [53.2, 2.95, 95.291, 129.949], reviews: '27', logo: { letter: 'X', label: 'Infinix' },
+    { id: '1231:10685', brand: 'Infinix', tint: '#eff6f1', img: 'infinix',  box: [56.072, 2.78, 89.686, 122.305], reviews: '27', logo: { letter: 'X', label: 'Infinix' },
       name: 'GT 50 Pro', now: '2,079', note: 'Free Delivery', specs: ['Gaming', '512GB', 'Black Abyss', '4.6'] },
   ];
   /* Fitness-tracker brands (shown when a "fitness tracker" search opened the PLP):
@@ -1035,7 +1035,7 @@ const PP = (() => {
      Garmin, so they use letter badges like the phone rail. Spec values are read
      from each listing's title. */
   const NOON = 'https://f.nooncdn.com/p/pzsku/';
-  const FBOX = [53.9, 2.45, 96.2, 131.1];   // the 139-px box scaled to the 136-px media
+  const FBOX = [56.75, 2.3, 90.5, 123.4];   // the 139-px box scaled to the 128-px media
   const FIT_CARDS = [
     { brand: 'Fitbit', tint: '#eef5f6', src: `${NOON}Z17C80A3602A5846BAD1FZ/45/_/1779344354/c435a5b4-5bd0-43e5-abf8-40f2da8c981e.jpg?width=400`, box: FBOX, reviews: '1.7K', best: true, logo: { letter: 'F', label: 'Fitbit' },
       name: 'Fitbit Air', now: '447', was: '689', off: '35% off', specs: ['AI coaching', 'Up to 7 days', 'Screenless', '4.6'] },
@@ -1229,7 +1229,7 @@ const PP = (() => {
   const OUT = 'cubic-bezier(.32,.72,0,1)';   // iOS sheet / "smooth" curve
 
   /* ── reveal ──────────────────────────────────────────────────────────────── */
-  const H = 459, WAIT = 0;   // box: 2 + 450 panel + 9 gap − the grid's own 2px top padding
+  const H = 464, WAIT = 0;   // box: 2 + 450 panel + 14 gap − the grid's own 2px top padding (products at Figma y 620)
   const REVEAL = { CARD_RISE: 20, CARD_SCALE: 0.9, HEAD_RISE: 10, CARD_FADE_AT: 17, HEAD_AT: 33, HEAD_FADE_AT: 50, FADE_MS: 300 };
   const REVEAL_FADE = 'linear(0, 0.1202, 0.2309, 0.3305, 0.4218, 0.5033, 0.5773, 0.6428, 0.7018, 0.7532, 0.7988, 0.838, 0.8722, 0.9008, 0.9252, 0.945, 0.9612, 0.9737, 0.9834, 0.9902, 0.995, 0.9978, 0.9994, 0.9999, 1)';
   const revealFade = (el, delay = 0) => el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: REVEAL.FADE_MS, delay, easing: REVEAL_FADE, fill: 'both' });
