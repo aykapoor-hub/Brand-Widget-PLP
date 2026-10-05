@@ -868,7 +868,7 @@ img.contain { object-fit: contain; }
   text-decoration: underline dotted; text-underline-position: from-font; -webkit-tap-highlight-color: transparent;
 }
 .brw__htitle { transform-origin: 0 0; }
-/* brand card — 1214:145926: 204×384, white, radius 20 */
+/* brand card — 1232:10204 (State 16 · Hierarchy 1232:9469): 204×384, white, radius 20 */
 .brw__card { position: relative; flex: none; width: 204px; height: 384px; border-radius: 20px; background: #fff; overflow: hidden; opacity: 0; letter-spacing: -0.1px; white-space: nowrap; }
 .brw__media { position: relative; width: 204px; height: 139px; overflow: hidden; }
 .brw__img { position: absolute; display: block; object-fit: contain; mix-blend-mode: multiply; pointer-events: none; }
@@ -877,24 +877,24 @@ img.contain { object-fit: contain; }
 .brw__body { display: flex; flex-direction: column; gap: 3px; padding: 12px; }
 .brw__logo { display: flex; align-items: center; gap: 4px; height: 14px; }
 .brw__logo img { display: block; flex: none; }
-.brw__logo b { font-weight: 500; font-size: 11px; line-height: 13px; color: #475067; }
+.brw__logo b { font-weight: 500; font-size: 11px; line-height: 13px; letter-spacing: 0; color: #666d85; }
 .brw__letter { flex: none; width: 11px; height: 11px; border-radius: 3px; background: #1d2539; color: #fff; font-weight: 700; font-size: 8px; line-height: 11px; text-align: center; }
-.brw__name { font-weight: 400; font-size: 14px; line-height: 18px; color: #1d2539; }
-.brw__price { display: flex; align-items: baseline; gap: 5px; }
-.brw__now { font-weight: 600; font-size: 15px; line-height: 20px; color: #1d2539; }
-.brw__was { font-weight: 400; font-size: 11px; line-height: 14px; color: #989fb3; text-decoration: line-through; }
-.brw__off { font-weight: 500; font-size: 11px; line-height: 14px; color: #0f8857; }
+.brw__name { font-weight: 600; font-size: 14px; line-height: 18px; letter-spacing: -0.2px; color: #1d2539; }
+.brw__price { display: flex; align-items: baseline; gap: 5px; letter-spacing: 0; }
+.brw__now { font-weight: 700; font-size: 17px; line-height: 20px; letter-spacing: -0.3px; color: #0e0e0e; }
+.brw__was { font-weight: 400; font-size: 11px; line-height: 14px; color: #a3a9ba; text-decoration: line-through; }
+.brw__off { font-weight: 600; font-size: 11px; line-height: 14px; color: #0f8857; }
 .brw__note { font-weight: 500; font-size: 11px; line-height: 14px; color: #666d85; }
-.brw__specs { display: flex; flex-direction: column; padding-top: 6px; }
-.brw__spec { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 0; border-top: 1px solid #f1f2f4; }
-.brw__spec span { font-weight: 400; font-size: 11px; line-height: 14px; color: #989fb3; }
-.brw__spec b { font-weight: 400; font-size: 12px; line-height: 16px; color: #1d2539; }
-/* CTA — 4px spacer, then 180×36 #F3F4F7 radius 10, padding 0 8 0 12, gap 2 */
-.brw__ctagap { display: block; width: 10px; height: 4px; flex: none; }
+.brw__specs { display: flex; flex-direction: column; padding-top: 8px; }
+.brw__spec { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 0; border-top: 1px solid #f0f1f4; }
+.brw__spec span { font-weight: 400; font-size: 11px; line-height: 14px; letter-spacing: 0; color: #a3a9ba; }
+.brw__spec b { font-weight: 500; font-size: 12px; line-height: 16px; letter-spacing: -0.1px; color: #1d2539; }
+/* CTA — 2px spacer, then 180×36 #F3F4F7 radius 10, padding 0 8 0 12, gap 2 */
+.brw__ctagap { display: block; width: 10px; height: 2px; flex: none; }
 .brw__cta {
   display: flex; align-items: center; justify-content: center; gap: 2px; width: 100%; height: 36px; padding: 0 8px 0 12px;
   border: 0; border-radius: 10px; background: #f3f4f7; cursor: pointer; -webkit-tap-highlight-color: transparent;
-  font: inherit; font-weight: 500; font-size: 13px; line-height: 18px; letter-spacing: -0.1px; color: #1d2539; white-space: nowrap;
+  font: inherit; font-weight: 600; font-size: 13px; line-height: 18px; letter-spacing: -0.1px; color: #1d2539; white-space: nowrap;
   transition: background-color .2s, transform .2s cubic-bezier(.32,.72,0,1);
 }
 .brw__cta img { display: block; flex: none; }
