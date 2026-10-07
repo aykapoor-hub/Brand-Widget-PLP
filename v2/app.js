@@ -311,7 +311,7 @@ const PP = (() => {
 })();
 
 /* ══ Search suggestions — ProtoPie handoff motion ═════════════════════════
-   From the recording (typed "iphone" there; this build matches "phone"):
+   From the recording (typed "iphone" there; this build suggests letter by letter — see matches()):
    · push: trending + banners rise 20px while fading in, 124ms after touch-up
    · first keystroke: they drop 20px while fading out (S-curve)
    · query becomes "phone": 110ms later the rows arrive TOP→BOTTOM
@@ -326,7 +326,7 @@ const PP = (() => {
   const box     = document.getElementById('suggest');
   const rows    = [...box.querySelectorAll('.sug')];
 
-  const REVEAL_DELAY = 110, ART_PUSH_DELAY = 124, TRAVEL = 20;
+  const REVEAL_DELAY = 110, ART_PUSH_DELAY = 124, TRAVEL = 20, MAX = rows.length;
 
   /* Suggestion sets, keyed by the exact query that shows them. "phone" is the
      markup as built (sprite thumbnails from the Figma); the others swap each
@@ -345,18 +345,98 @@ const PP = (() => {
   };
   // warm the fitness photos once the search page is up, so they're decoded before they reveal
   const warmSet = (key) => SETS[key].forEach((it) => { if (!it.img) return; const im = new Image(); im.src = `${NOON}${it.img}.jpg?width=120`; });
-  let setKey = 'phone';
-  function useSet(key) {
-    if (key === setKey) return; setKey = key;
-    SETS[key].forEach((it, i) => {
-      const r = rows[i]; if (!r) return;
-      r.dataset.q = it.q;
-      const label = r.querySelector('.sug__label'), rest = it.q.slice(key.length);
-      label.innerHTML = `<b>${key}</b>${rest}`;
-      r.querySelector('.sug__fill').setAttribute('aria-label', `Use “${it.q}”`);
-      r.querySelector('.sug__thumb').innerHTML = it.html || `<span class="sug__img sug__img--photo"><img src="${NOON}${it.img}.jpg?width=120" alt="" decoding="async" /></span>`;
+
+  /* Suggestions as you type, letter by letter: every query that STARTS WITH what is typed — the design
+     sets above first, then NOON_SUGGEST (assets/suggest-data.js: popular noon queries for every letter,
+     each with the top noon.com product photo). When the matches span several words (one letter typed:
+     "p" → phone, power bank, perfume, playstation…) each word gets one row, its head term, most popular
+     first; once only one word is left ("ph" → phone…) its rows follow in order, so "phone" and
+     "fitness tracker" still show the design's five rows. The typed letters are bold, as in the design. */
+  const CDN = 'https://f.nooncdn.com/p/';
+  const DATA = [];
+  const seen = new Set();
+  [...SETS.phone, ...SETS['fitness tracker'].map((it) => ({ q: it.q, img: 'pzsku/' + it.img })), ...(window.NOON_SUGGEST || []).map(([q, img]) => ({ q, img }))]
+    .forEach((s) => { if (!seen.has(s.q)) { seen.add(s.q); DATA.push(s); } });
+  function matches(q) {
+    if (!q) return [];
+    const hit = DATA.filter((s) => s.q.startsWith(q)), groups = new Map();
+    hit.forEach((s) => { const w = s.q.split(' ')[0]; if (!groups.has(w)) groups.set(w, []); groups.get(w).push(s); });
+    if (groups.size <= 1) return hit.slice(0, MAX);
+    const out = [...groups.values()].map((g) => g.reduce((a, b) => (b.q.length < a.q.length ? b : a))).slice(0, MAX);
+    for (const s of hit) { if (out.length >= MAX) break; if (!out.includes(s)) out.push(s); }
+    return out;
+  }
+  const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const thumbOf = (s) => s.html || `<span class="sug__img sug__img--photo"><img src="${CDN}${s.img}.jpg?width=120" alt="" decoding="async" /></span>`;
+  let shownKey = '';                               // what the rows hold now ("q|a|b|…")
+  /* While typing, a row whose suggestion changes CROSSFADES rather than swapping: the old label and photo
+     lift 5px, soften (blur 2px) and fade out on the S-curve, while the new ones rise 5px into place on the
+     ease-out, 40ms behind. Changed rows cascade top → bottom 28ms apart. A new photo waits (≤250ms) to be
+     decoded first, so it never pops in after its fade. Only the bold part moving is updated in place. */
+  const XF = { OUT: 160, IN: 260, LAG: 40, STEP: 28, SHIFT: 5, BLUR: 2, WAIT_IMG: 250 };
+  function crossfade(old, fresh, delay) {
+    const parent = old.parentNode;
+    parent.querySelectorAll(':scope > .is-ghost').forEach((g) => g.remove());       // an older crossfade: drop it
+    const op = +getComputedStyle(old).opacity, x = old.offsetLeft, y = old.offsetTop, w = old.offsetWidth;
+    old.getAnimations().forEach((a) => a.cancel());
+    old.classList.add('is-ghost');
+    Object.assign(old.style, { position: 'absolute', left: `${x}px`, top: `${y}px`, width: `${w}px`, margin: '0', opacity: op });
+    parent.insertBefore(fresh, old);
+    fresh.style.opacity = 0;
+    const img = fresh.querySelector('img');
+    const ready = img && !img.complete
+      ? Promise.race([img.decode().catch(() => {}), new Promise((r) => setTimeout(r, XF.WAIT_IMG))])
+      : Promise.resolve();
+    ready.then(() => {
+      if (!old.isConnected && !fresh.isConnected) return;
+      const out = old.animate([{ opacity: op, transform: 'translateY(0)', filter: 'blur(0)' },
+                               { opacity: 0, transform: `translateY(${-XF.SHIFT}px)`, filter: `blur(${XF.BLUR}px)` }],
+                              { duration: XF.OUT, delay, easing: PP.EASE_IO, fill: 'both' });
+      out.finished.then(() => old.remove()).catch(() => {});
+      const inn = fresh.animate([{ opacity: 0, transform: `translateY(${XF.SHIFT}px)`, filter: `blur(${XF.BLUR}px)` },
+                                { opacity: 1, transform: 'translateY(0)', filter: 'blur(0)' }],
+                               { duration: XF.IN, delay: delay + XF.LAG, easing: PP.EASE_OUT, fill: 'both' });
+      inn.finished.then(() => { fresh.style.opacity = ''; inn.cancel(); }).catch(() => {});
     });
   }
+  const make = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
+  const labelHtml = (s, q) => `<b>${esc(s.q.slice(0, q.length))}</b>${esc(s.q.slice(q.length))}`;
+  function fillRows(list, q, animate) {
+    const smooth = animate && !PP.reduce.matches;
+    let changed = 0, fresh = 0, gone = 0;
+    rows.forEach((r, i) => {
+      const s = list[i];
+      if (!s) {                                    // fewer results: the extra rows leave like the backspace exit, then leave the layout
+        if (!r.hidden) {
+          r._s = null;
+          if (smooth && PP.cur(r).op > 0.02) {
+            const c = PP.stop(r), d = gone++ * XF.STEP;
+            const a = r.animate([{ opacity: c.op, transform: `translateY(${c.y}px)` }, { opacity: 0, transform: `translateY(${c.y - XF.SHIFT * 2}px)` }],
+                                { duration: XF.OUT + 40, delay: d, easing: PP.EASE_IO, fill: 'both' });
+            a.finished.then(() => { if (!r._s) { r.hidden = true; r.style.opacity = 0; r.style.transform = ''; } a.cancel(); }).catch(() => {});
+          } else { PP.stop(r); r.hidden = true; r.style.opacity = 0; }
+        }
+        return;
+      }
+      const was = r._s, wasHidden = r.hidden, appearing = wasHidden || PP.cur(r).op < 0.02;
+      r._s = s; r.hidden = false; r.dataset.q = s.q;
+      r.querySelector('.sug__fill').setAttribute('aria-label', `Use “${s.q}”`);
+      const label = r.querySelector('.sug__label:not(.is-ghost)'), th = r.querySelector('.sug__thumb'), html = thumbOf(s);
+      const swap = smooth && !appearing && was && was.q !== s.q;
+      if (swap) {
+        const d = changed++ * XF.STEP;
+        const nl = make(`<span class="sug__label">${labelHtml(s, q)}</span>`);
+        crossfade(label, nl, d);
+        if (th._html !== html) { const im = th.querySelector('.sug__img:not(.is-ghost)'); th._html = html; im ? crossfade(im, make(html), d) : (th.innerHTML = html); }
+      } else {
+        label.innerHTML = labelHtml(s, q);       // same suggestion: only the bold part moves
+        if (th._html !== html) { th.querySelectorAll('.is-ghost').forEach((g) => g.remove()); th.innerHTML = html; th._html = html; }
+      }
+      if (smooth && appearing) { if (r.parentNode) revealRow(r, fresh++ * PP.IN_STAGGER); }       // a new row falls in
+    });
+  }
+  const warmed = new Set();
+  const warm = (list) => list.forEach((s) => { if (!s.img || warmed.has(s.img)) return; warmed.add(s.img); const im = new Image(); im.decoding = 'async'; im.src = `${CDN}${s.img}.jpg?width=120`; });
 
   function revealRow(el, delay) {
     const c = PP.stop(el), fresh = c.op < 0.02;
@@ -384,10 +464,14 @@ const PP = (() => {
 
   let state = 'hidden';            // hidden | showing | hiding
   let revealTimer = 0;
+  let swapTimer = 0;
+  let hideEnd = 0;                 // when the rows' current exit finishes (performance.now ms)
+  const ART_GAP = 40;              // field cleared: trending comes in this long after the last row has left
+  const SETTLE = 60;
   function show() {
     state = 'showing';
     box.classList.add('is-on'); box.setAttribute('aria-hidden', 'false');
-    rows.forEach((r, i) => revealRow(r, PP.reduce.matches ? 0 : i * PP.IN_STAGGER));
+    rows.forEach((r, i) => { if (!r.hidden) revealRow(r, PP.reduce.matches ? 0 : i * PP.IN_STAGGER); });
   }
   function hide(fast = false) {
     state = 'hiding';
@@ -396,24 +480,29 @@ const PP = (() => {
     const stagger = PP.reduce.matches ? 0 : fast ? FAST.STAGGER : PP.OUT_STAGGER;
     rows.forEach((r) => { if (!live.includes(r)) hideRow(r, 0, fast); });
     live.forEach((r, j) => hideRow(r, j * stagger, fast));
-    // when the last row is gone (ms) — the results page waits for this
-    return live.length ? (live.length - 1) * stagger + (fast ? FAST.MOVE_MS : PP.IO_MS) : 0;
+    // when the last row is gone (ms) — the results page and the trending block wait for this
+    const ms = live.length ? (live.length - 1) * stagger + (fast ? FAST.MOVE_MS : PP.IO_MS) : 0;
+    hideEnd = performance.now() + ms;
+    return ms;
   }
 
   let artShown = true;
   function update() {
     const q = input.value.trim().toLowerCase();
-    if ((q === '') !== artShown) { artShown = q === ''; artTo(artShown); }
-    clearTimeout(revealTimer);
-    const key = SETS[q] ? q : null;
-    if (key && state === 'showing' && key !== setKey) {
-      // another set while rows are up: they leave first, then the new set arrives
-      const out = hide();
-      revealTimer = setTimeout(() => { useSet(key); show(); }, out + REVEAL_DELAY);
-    } else if (key) {
-      if (state !== 'showing') revealTimer = setTimeout(() => { useSet(key); show(); }, REVEAL_DELAY);
+    clearTimeout(revealTimer); clearTimeout(swapTimer);
+    const list = matches(q), key = q + '|' + list.map((s) => s.q).join('|');
+    if (q) warm(DATA.filter((s) => s.q.startsWith(q)).slice(0, 12));   // the next letters' photos too
+    if (list.length) {
+      // still typing: rows update in place — a burst of keys within SETTLE ms lands as one change
+      if (state === 'showing') { if (key !== shownKey) swapTimer = setTimeout(() => { fillRows(list, q, true); shownKey = key; }, SETTLE); }
+      else revealTimer = setTimeout(() => { fillRows(list, q, false); shownKey = key; show(); }, REVEAL_DELAY);
     } else if (state === 'showing') {
-      hide();
+      hide(); shownKey = '';
+    }
+    // trending in/out — when the field is cleared it waits for the rows' exit, so the two never overlap
+    if ((q === '') !== artShown) {
+      artShown = q === '';
+      artTo(artShown, artShown ? Math.max(0, hideEnd - performance.now()) + ART_GAP : 0);
     }
   }
   input.addEventListener('input', update);
@@ -441,18 +530,19 @@ const PP = (() => {
 
   // Results page hands the list back and forth
   search.suggest = {
-    hideForResults() { clearTimeout(revealTimer); return hide(true); },   // quicker exit; returns its length (ms)
-    restore() { update(); },                                   // back from results: rows return
+    hideForResults() { clearTimeout(revealTimer); clearTimeout(swapTimer); return hide(true); },   // quicker exit; returns its length (ms)
+    restore() { shownKey = ''; update(); },                    // back from results: rows return
   };
 
   // Leaving the page resets it, so the next visit starts from trending
   search.addEventListener('search:closed', () => {
-    clearTimeout(revealTimer);
+    clearTimeout(revealTimer); clearTimeout(swapTimer);
+    box.querySelectorAll('.is-ghost').forEach((g) => g.remove());
     [art, ...rows].forEach(PP.stop);
     input.value = '';
     art.style.opacity = 1; art.style.transform = ''; artShown = true;
     rows.forEach((r) => { r.style.opacity = 0; r.style.transform = ''; });
-    state = 'hidden'; box.classList.remove('is-on'); box.setAttribute('aria-hidden', 'true');
+    state = 'hidden'; shownKey = ''; box.classList.remove('is-on'); box.setAttribute('aria-hidden', 'true');
   });
 })();
 

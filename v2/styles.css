@@ -644,6 +644,9 @@ img.contain { object-fit: contain; }
 .sug__img { position: absolute; left: 0.933px; top: 0.933px; width: 42.91px; height: 42.91px; border-radius: 4.664px; overflow: hidden; }
 .sug__img img { position: absolute; left: -34.77%; width: 873.92%; height: 1900.02%; }
 .sug__img--photo img { left: 0; top: 0; width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }   /* a single noon listing photo (white bg) instead of the sprite */
+.sug[hidden] { display: none; }   /* fewer matches than rows */
+.sug__content { position: relative; }   /* the outgoing label of a crossfade sits over the new one */
+.is-ghost { pointer-events: none; }
 .sug__content { flex: 1 0 0; min-width: 1px; display: flex; align-items: center; gap: 7.463px; padding-bottom: 0.4px; overflow: hidden; }
 .sug__label {
   flex: 1 0 0; min-width: 1px;
