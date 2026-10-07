@@ -623,6 +623,13 @@ img.contain { object-fit: contain; }
   color: #1f1d1d; caret-color: #3866df;
 }
 .srch__input::placeholder { color: #1f1d1d; opacity: 1; }
+/* a picked suggestion filling the field: the typed part holds, the rest fades in (fillField in app.js) */
+.srch__input.is-filling { color: transparent; }
+.srch__fill {
+  position: absolute; left: 34px; top: 13px; width: 267px; height: 20px; display: flex; align-items: center;   /* 13: lands on the input's own text line */
+  white-space: pre; overflow: hidden; pointer-events: none;
+  font-family: var(--fig); font-weight: 500; font-size: 15px; line-height: 19.102px; letter-spacing: -0.3016px; color: #1f1d1d;
+}
 .srch__input::-webkit-search-cancel-button, .srch__input::-webkit-search-decoration { -webkit-appearance: none; display: none; }
 .srch__div { position: absolute; left: 299px; top: 10px; width: 0; height: 24px; }
 .srch__div img { position: absolute; left: -11.5px; top: 11.5px; width: 24px; height: 1px; transform: rotate(90deg); }

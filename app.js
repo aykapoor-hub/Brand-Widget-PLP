@@ -515,16 +515,39 @@ const PP = (() => {
     artShown = true; artTo(true, ART_PUSH_DELAY);
   });
 
+  /* Picking a suggestion puts it in the search field. What was typed stays exactly where it is and only the
+     rest of the query fades in after it ("fit" + "ness tracker"), on the S-curve over 320ms — the field's own
+     text is hidden meanwhile and a copy in the same type (.srch__fill) carries the fade, then hands back.
+     If the typed text isn't a prefix of the pick, the whole query fades in. A tap then opens results; the ↖
+     arrow stays and refreshes the suggestions for the new query. */
+  const FILL_MS = 320;
+  let fillCopy = null;
+  function stopFill() { if (fillCopy) { fillCopy.remove(); fillCopy = null; } input.classList.remove('is-filling'); }
+  function fillField(q) {
+    stopFill();
+    const shown = input.value, keep = q.startsWith(shown) ? shown.length : 0;
+    input.value = q;
+    if (PP.reduce.matches || keep === q.length) return;
+    const c = document.createElement('span');
+    c.className = 'srch__fill'; c.setAttribute('aria-hidden', 'true');
+    c.innerHTML = `<span>${esc(q.slice(0, keep))}</span><span>${esc(q.slice(keep))}</span>`;
+    input.parentNode.appendChild(c); input.classList.add('is-filling'); fillCopy = c;
+    const done = () => { if (fillCopy === c) stopFill(); };
+    PP.fade(c.lastChild, 0, 1, { curve: 'io', ms: FILL_MS }).finished.then(done).catch(() => {});
+    setTimeout(done, FILL_MS + 80);                  // even if the animation is held (a background tab)
+  }
+
   // Tapping a suggestion opens results; its ↖ arrow puts it in the field
   box.addEventListener('click', (e) => {
     const row = e.target.closest('.sug');
     if (!row) return;
     if (e.target.closest('.sug__fill')) {
-      input.value = row.dataset.q;
       input.focus({ preventScroll: true });
+      fillField(row.dataset.q);
       update();
       return;
     }
+    fillField(row.dataset.q);
     search.dispatchEvent(new CustomEvent('plp:open', { detail: { q: row.dataset.q } }));
   });
 
@@ -537,7 +560,7 @@ const PP = (() => {
   // Leaving the page resets it, so the next visit starts from trending
   search.addEventListener('search:closed', () => {
     clearTimeout(revealTimer); clearTimeout(swapTimer);
-    box.querySelectorAll('.is-ghost').forEach((g) => g.remove());
+    box.querySelectorAll('.is-ghost').forEach((g) => g.remove()); stopFill();
     [art, ...rows].forEach(PP.stop);
     input.value = '';
     art.style.opacity = 1; art.style.transform = ''; artShown = true;
