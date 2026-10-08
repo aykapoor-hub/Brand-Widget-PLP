@@ -961,7 +961,7 @@ const PP = (() => {
       // "landed" = the on-screen cards (rows 1–2) have risen into place — the brand widget keys off this,
       // so it doesn't wait for the below-the-fold skeletons
       Promise.all(anims.slice(0, 4 * 3).filter((_, i) => i % 3 < 2).map((a) => a.finished))
-        .then(() => { if (open) plp.dispatchEvent(new CustomEvent('plp:landed')); }).catch(() => {});
+        .then(() => { if (open) { Haptics.land(); plp.dispatchEvent(new CustomEvent('plp:landed')); } }).catch(() => {});   // results arrived
       // "settled" = every card has landed and every skeleton has faded
       Promise.all(anims.map((a) => a.finished)).then(() => { if (open) plp.classList.remove('is-loading'); }).catch(() => {});
     });
@@ -1240,7 +1240,7 @@ const PP = (() => {
     const setPage = (i, haptic = true) => {
       if (i === page) return; page = i; warm(i);
       count.textContent = `${Math.min(cards.length, i === pages().length - 1 ? cards.length : i + 1)} of ${cards.length}`;
-      if (haptic && typeof Haptics !== 'undefined') Haptics.tick();
+      if (haptic && typeof Haptics !== 'undefined') Haptics.gesture('tick');
     };
     function settle(target) {
       cancelAnimationFrame(raf);
@@ -1282,7 +1282,7 @@ const PP = (() => {
       }
       drag.moved = true;
       const raw = drag.s0 - dx;
-      if (!edged && (raw < 0 || raw > max())) { edged = true; if (typeof Haptics !== 'undefined') Haptics.edge(); }
+      if (!edged && (raw < 0 || raw > max())) { edged = true; if (typeof Haptics !== 'undefined') Haptics.gesture('edge'); }
       x = clampView(raw); v = 0; paint();
       drag.samples.push([e.timeStamp, e.clientX]); if (drag.samples.length > 6) drag.samples.shift();
     });
@@ -1530,10 +1530,21 @@ const PP = (() => {
    · iPhone Safari (WebKit 18+, no Vibration API) — toggling a hidden native
      <input type="checkbox" switch> plays the system haptic (taps / gestures). */
 const Haptics = (() => {
+  /* iOS-style haptics on every device, one channel per pulse:
+     1. a native host (window.webkit.messageHandlers.haptic — Vercel Sim's HapticEngine): real UIKit
+        generators with intensity, from any event or timer;
+     2. Android / Chrome: navigator.vibrate — pulses ≥ 10 ms so cheaper motors still register them
+        (once the page has had any user activation);
+     3. iPhone Safari (no Vibration API): toggling a hidden <input type="checkbox" switch> plays the system
+        tick. WebKit only allows it inside a real activation — a touch *pointerup* / click, not pointerdown
+        and not pointermove — or shortly after one, so iOS taps fire on release and drag haptics wait for
+        the finger to lift (see gesture()). Stronger kinds are a quick burst of ticks. */
   const iOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const NATIVE = { tick: 'selection', snap: { type: 'medium', intensity: 0.8 }, edge: { type: 'rigid', intensity: 0.6 }, tap: 'light', success: 'success',
-    soft: { type: 'soft', intensity: 0.5 }, pop: { type: 'medium', intensity: 0.7 }, land: { type: 'soft', intensity: 0.4 } };
-  const VIBE = { tick: 4, snap: 12, edge: 10, tap: 8, success: [10, 40, 16], soft: 6, pop: 11, land: 5 };
+  const native = () => { const h = window.webkit && window.webkit.messageHandlers; return h && h.haptic ? h.haptic : null; };
+  const NATIVE = { tick: 'selection', tap: { type: 'light', intensity: 0.9 }, snap: { type: 'medium', intensity: 0.8 }, edge: { type: 'rigid', intensity: 0.7 },
+    soft: { type: 'soft', intensity: 0.6 }, pop: { type: 'medium', intensity: 0.85 }, land: { type: 'soft', intensity: 0.5 }, success: 'success' };
+  const VIBE = { tick: 10, tap: 12, snap: 18, edge: 16, soft: 14, pop: 22, land: 12, success: [14, 60, 20] };
+  const TICKS = { tick: 1, tap: 1, snap: 2, edge: 2, soft: 1, pop: 2, land: 1, success: 2 };   // iOS switch ticks per kind
   let label = null;
   const sw = () => {
     if (label && label.isConnected) return label;
@@ -1545,6 +1556,7 @@ const Haptics = (() => {
     label.appendChild(input); document.body.appendChild(label);
     return label;
   };
+  const iosTicks = (n) => { sw().click(); for (let k = 1; k < n; k++) setTimeout(() => sw().click(), k * 45); };
   // two pulses inside ~40ms read as one blurred bump (and native hosts merge them): a tick is dropped,
   // anything stronger waits until the gap has passed (≤40ms — still reads as the same moment)
   const GAP = 40;
@@ -1557,31 +1569,46 @@ const Haptics = (() => {
     }
     lastAt = now;
     try {
-      const h = window.webkit && window.webkit.messageHandlers;
-      if (h && h.haptic) { h.haptic.postMessage(NATIVE[kind] || 'light'); return; }
+      const n = native();
+      if (n) { n.postMessage(NATIVE[kind] || 'light'); return; }
       if (navigator.vibrate) {
-        if (!navigator.userActivation || navigator.userActivation.hasBeenActive) navigator.vibrate(VIBE[kind] || 8);
+        if (!navigator.userActivation || navigator.userActivation.hasBeenActive) navigator.vibrate(VIBE[kind] || 12);
         return;
       }
-      if (iOS) { sw().click(); if (kind === 'success') setTimeout(() => sw().click(), 90); }
+      if (iOS) iosTicks(TICKS[kind] || 1);
     } catch (_) {}
   }
-  const api = { tick: () => fire('tick'), snap: () => fire('snap'), edge: () => fire('edge'), tap: () => fire('tap'), success: () => fire('success'),
-    soft: () => fire('soft'),   // a panel arriving or reopening (UIImpactFeedbackGenerator .soft @0.5)
-    pop: () => fire('pop'),     // the selected brand's coin popping in (.medium @0.7)
-    land: () => fire('land') }; // a new list of products landing (.soft @0.4)
+  /* Haptics raised in the middle of a drag (a rail page change, the rubber band at an end): native hosts and
+     Android play them right away; iPhone Safari can't (pointermove isn't an activation), so the strongest one
+     is held and played the moment the finger lifts. */
+  const RANK = { tick: 1, tap: 2, land: 2, soft: 3, edge: 4, snap: 4, pop: 5, success: 6 };
+  let queued = null;
+  const deferIOS = () => iOS && !native() && !navigator.vibrate;
+  function gesture(kind) {
+    if (!deferIOS()) { fire(kind); return; }
+    if (!queued || RANK[kind] > RANK[queued]) queued = kind;
+  }
+  // flushed one task after the lift, so haptics the release itself raises (the rail settling on a new page) are
+  // included — still well inside WebKit's activation window
+  addEventListener('pointerup', () => setTimeout(() => { if (queued) { const k = queued; queued = null; fire(k); } }, 0), { capture: true, passive: true });
+  addEventListener('pointercancel', () => { queued = null; }, { capture: true, passive: true });
 
-  // taps on interactive elements: a light impact on press (where iOS plays it), once per press
+  const api = { tick: () => fire('tick'), snap: () => fire('snap'), edge: () => fire('edge'), tap: () => fire('tap'), success: () => fire('success'),
+    soft: () => fire('soft'),   // a panel arriving or reopening (UIImpactFeedbackGenerator .soft)
+    pop: () => fire('pop'),     // the selected brand's coin popping in (.medium)
+    land: () => fire('land'),   // a new list of products landing (.soft)
+    gesture };                  // a haptic raised mid-drag (held for the finger lifting on iPhone Safari)
+
+  // taps on interactive elements: a light impact, once per press — on press where the platform allows it,
+  // on release on iPhone Safari (its only activation) and inside draggable rails (so a swipe never buzzes)
   const TAP = 'button, a[href], [role="button"], [role="tab"], .sug, .chip, .tab, .pcard, #searchEntry, .vswitch__b, '
             + '.bnav__it, .mp, .bc, .cat, .hw__card, .hw__l, .addr__wish, .search__cam, .vid';
-  // inside a draggable / scrollable rail a press only counts as a tap once it lifts without moving,
-  // so starting a swipe never buzzes
   const RAIL = '.brw__rail, .hscroll';
   let pressed = null;
   addEventListener('pointerdown', (e) => {
     const t = e.target.closest && e.target.closest(TAP);
-    if (!t || t.closest('[aria-disabled="true"], :disabled')) return;
-    if (t.closest(RAIL)) { pressed = { t, x: e.clientX, y: e.clientY }; return; }
+    if (!t || t.closest('[aria-disabled="true"], :disabled')) { pressed = null; return; }
+    if (t.closest(RAIL) || deferIOS()) { pressed = { t, x: e.clientX, y: e.clientY }; return; }
     pressed = null; api.tap();
   }, { capture: true, passive: true });
   addEventListener('pointerup', (e) => {
