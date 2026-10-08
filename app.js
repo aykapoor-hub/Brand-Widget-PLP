@@ -1,4 +1,9 @@
 /* Brand Widget PLP — iteration 1 (/) */
+/* Android: phone GPUs pay heavily for animated blur filters and backdrop blurs, so on Android the
+   motion keeps its timing and curves but drops the blur (transform + opacity only); html.is-android
+   switches the CSS backdrop blurs off. Nothing changes on iPhone or desktop. */
+const IS_ANDROID = /Android/i.test(navigator.userAgent);
+if (IS_ANDROID) document.documentElement.classList.add('is-android');
 /* noon Home — rails are data; everything else is static markup. */
 (() => {
   const A = 'assets/';
@@ -373,7 +378,7 @@ const PP = (() => {
      lift 5px, soften (blur 2px) and fade out on the S-curve, while the new ones rise 5px into place on the
      ease-out, 40ms behind. Changed rows cascade top → bottom 28ms apart. A new photo waits (≤250ms) to be
      decoded first, so it never pops in after its fade. Only the bold part moving is updated in place. */
-  const XF = { OUT: 160, IN: 260, LAG: 40, STEP: 28, SHIFT: 5, BLUR: 2, WAIT_IMG: 250 };
+  const XF = { OUT: 160, IN: 260, LAG: 40, STEP: 28, SHIFT: 5, BLUR: IS_ANDROID ? 0 : 2, WAIT_IMG: 250 };
   function crossfade(old, fresh, delay) {
     const parent = old.parentNode;
     parent.querySelectorAll(':scope > .is-ghost').forEach((g) => g.remove());       // an older crossfade: drop it
@@ -1347,6 +1352,18 @@ const PP = (() => {
   const REVEAL_FADE = 'linear(0, 0.1202, 0.2309, 0.3305, 0.4218, 0.5033, 0.5773, 0.6428, 0.7018, 0.7532, 0.7988, 0.838, 0.8722, 0.9008, 0.9252, 0.945, 0.9612, 0.9737, 0.9834, 0.9902, 0.995, 0.9978, 0.9994, 0.9999, 1)';
   const revealFade = (el, delay = 0) => el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: REVEAL.FADE_MS, delay, easing: REVEAL_FADE, fill: 'both' });
 
+  /* The grid push runs on the compositor: the box jumps to its new height at once and the product grid
+     (an opaque white layer stacked above the box) slides from where it was to its new place on a transform,
+     on the same spring the height used to follow. Animating the box's height re-laid-out and repainted all
+     eight product cards every frame (~30 paints a frame) — the lag on Android phones. The look is unchanged:
+     the grid's top edge is still the reveal line that uncovers / covers the panel. */
+  const grid = document.getElementById('plpGrid');
+  function pushGrid(from, to, springOf) {
+    grid.getAnimations().forEach((a) => a.cancel());
+    box.style.height = to + 'px';
+    const d = from - to;   // where the grid was, relative to where it now sits
+    return PP.commit(grid, [springOf(grid, d, 0, (v) => ({ transform: `translate3d(0,${(+v).toFixed(2)}px,0)` }))], { transform: '' });
+  }
   let timers = [], running = false;
   const later = (ms, fn) => timers.push(setTimeout(fn, ms));
   const fixed = [box, bar, head, hTitle, count, sCoin, sTitle, sSub, clear];
@@ -1356,6 +1373,7 @@ const PP = (() => {
     all.forEach((el) => el.getAnimations().forEach((a) => a.cancel()));
     all.forEach((el) => { el.style.opacity = ''; el.style.transform = ''; el.style.filter = ''; el.style.transformOrigin = ''; });
     box.style.height = '0px'; bar.style.height = '';
+    grid.getAnimations().forEach((a) => a.cancel()); grid.style.transform = '';
     box.classList.remove('is-selected'); sel.setAttribute('aria-hidden', 'true');
     bar.style.opacity = 0; head.style.opacity = 0;
     pager.reset();
@@ -1364,7 +1382,7 @@ const PP = (() => {
   function reveal() {
     running = true;
     // grid edge: the box grows 0 → H and the grid below rides on it
-    PP.commit(box, [PP.spring(box, 0, H, (v) => ({ height: `${(+v).toFixed(2)}px` }))], { height: H + 'px' });
+    pushGrid(0, H, (el, a, b, fmt) => PP.spring(el, a, b, fmt));
     // the panel: scale + rise on one spring progress, plus the fade
     const card = PP.spring(bar, 0, 1, (p) => ({ transform: `translateY(${((1 - p) * REVEAL.CARD_RISE).toFixed(3)}px) scale(${(REVEAL.CARD_SCALE + (1 - REVEAL.CARD_SCALE) * p).toFixed(4)})` }));
     PP.commit(bar, [card, revealFade(bar, REVEAL.CARD_FADE_AT)], { opacity: 1, transform: '' });
@@ -1376,7 +1394,7 @@ const PP = (() => {
       if (i > 2) { c.style.opacity = 1; return; }   // off-screen: just in place, no blur to raster
       const delay = 80 + i * 40;
       const rise = springAnim(c, 0, 1, (p) => ({ transform: `translateY(${(16 * (1 - p)).toFixed(2)}px) scale(${(0.97 + 0.03 * p).toFixed(4)})` }), CARD_SPR, delay);
-      const fade = c.animate([{ opacity: 0, filter: 'blur(4px)' }, { opacity: 1, filter: 'blur(0px)' }], { duration: 340, delay, easing: OUT, fill: 'both' });
+      const fade = c.animate(IS_ANDROID ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, filter: 'blur(4px)' }, { opacity: 1, filter: 'blur(0px)' }], { duration: 340, delay, easing: OUT, fill: 'both' });
       PP.commit(c, [rise, fade], { opacity: 1, transform: '', filter: '' });
     });
   }
@@ -1415,7 +1433,7 @@ const PP = (() => {
     plp.dispatchEvent(new CustomEvent('plp:filter', { detail: { brand } }));
     const done = [];
     // growth → shrink: panel and the grid under it, one spring
-    done.push(PP.commit(box, [springAnim(box, H, H_SEL, (v) => ({ height: `${(+v).toFixed(2)}px` }), MORPH)], { height: H_SEL + 'px' }));
+    done.push(pushGrid(H, H_SEL, (el, a, b, fmt) => springAnim(el, a, b, fmt, MORPH)));
     done.push(PP.commit(bar, [springAnim(bar, BAR, BAR_SEL, (v) => ({ height: `${(+v).toFixed(2)}px` }), MORPH)], { height: BAR_SEL + 'px' }));
     // title: header → selected slot, crossfading
     PP.commit(hTitle, [springAnim(hTitle, 0, 1, (p) => ({ transform: `translate(${(TITLE_DX * p).toFixed(2)}px,${(TITLE_DY * p).toFixed(2)}px) scale(${(1 + (TITLE_K - 1) * p).toFixed(4)})` }), MORPH), fadeTo(hTitle, 1, 0, 160, 0, IO)], { opacity: 0 });
@@ -1448,7 +1466,7 @@ const PP = (() => {
     plp.dispatchEvent(new CustomEvent('plp:filter', { detail: { brand: null } }));
     box.classList.remove('is-selected'); sel.setAttribute('aria-hidden', 'true');
     const done = [];
-    done.push(PP.commit(box, [springAnim(box, H_SEL, H, (v) => ({ height: `${(+v).toFixed(2)}px` }), MORPH)], { height: H + 'px' }));
+    done.push(pushGrid(H_SEL, H, (el, a, b, fmt) => springAnim(el, a, b, fmt, MORPH)));
     done.push(PP.commit(bar, [springAnim(bar, BAR_SEL, BAR, (v) => ({ height: `${(+v).toFixed(2)}px` }), MORPH)], { height: '' }));
     // title: selected slot → header
     PP.commit(sTitle, [springAnim(sTitle, 0, 1, (p) => ({ transform: `translate(${(-TITLE_DX * p).toFixed(2)}px,${(-TITLE_DY * p).toFixed(2)}px) scale(${(1 + (1 / TITLE_K - 1) * p).toFixed(4)})` }), MORPH), fadeTo(sTitle, 1, 0, 160, 0, IO)], { opacity: 0, transform: '' });
@@ -1466,7 +1484,7 @@ const PP = (() => {
       if (!onScreen(k)) { c.style.opacity = 1; return; }
       const delay = 90 + (n++) * 40;
       const rise = springAnim(c, 0, 1, (p) => ({ transform: `translateY(${(16 * (1 - p)).toFixed(2)}px) scale(${(0.97 + 0.03 * p).toFixed(4)})` }), CARD_SPR, delay);
-      const fade = c.animate([{ opacity: 0, filter: 'blur(4px)' }, { opacity: 1, filter: 'blur(0px)' }], { duration: 340, delay, easing: OUT, fill: 'both' });
+      const fade = c.animate(IS_ANDROID ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, filter: 'blur(4px)' }, { opacity: 1, filter: 'blur(0px)' }], { duration: 340, delay, easing: OUT, fill: 'both' });
       PP.commit(c, [rise, fade], { opacity: 1, transform: '', filter: '' });
     });
     Promise.all(done).then(() => { if (mode === 'busy') mode = 'panel'; });

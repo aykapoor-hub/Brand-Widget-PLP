@@ -724,6 +724,7 @@ img.contain { object-fit: contain; }
 }
 .plp__scroll::-webkit-scrollbar { display: none; }
 .plp__grid {
+  position: relative; z-index: 1; background: #fff;   /* covers the brand panel while it slides (compositor push) */
   display: grid; grid-template-columns: 170px 170px; column-gap: 12px; row-gap: 14px;   /* 958:54224: rows 394px apart (380 + 14) */
   padding: 2px 0 0 14px;
 }
@@ -836,7 +837,7 @@ img.contain { object-fit: contain; }
 /* ══ 1214:145919 "Shop phones by brand" panel (State 12 1214:145190) — between the chips
    and the grid. Collapsed (height 0) until the on-screen cards land; opens to 464px
    (2 + 450 panel + 14 gap − the grid's 2px top padding): products land at Figma's y 620.                     */
-.brw { position: relative; height: 0; overflow: hidden; }
+.brw { position: relative; height: 0; }   /* no clip: the opaque grid above it is the reveal edge (app.js pushGrid) */
 .brw__bar {
   position: absolute; left: 16px; top: 2px; width: 343px; height: 450px;
   border-radius: 16px; background: #f7f8fa; overflow: hidden;
@@ -947,3 +948,7 @@ img.contain { object-fit: contain; }
 }
 .vswitch__spec:hover::after, .vswitch__spec:focus-visible::after { opacity: 1; transform: translate(0, -50%); }
 
+
+/* Android: no backdrop blur behind the near-opaque buttons on Home's scrolling rails (re-blurred every
+   frame they scroll; at 64 % / 100 % black the blur is invisible anyway) — see IS_ANDROID in app.js */
+.is-android .vid, .is-android .lc__btn { -webkit-backdrop-filter: none; backdrop-filter: none; }
