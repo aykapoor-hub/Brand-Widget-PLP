@@ -861,18 +861,18 @@ const PP = (() => {
       <div class="pcard__media">
         <div class="pcard__clip">
           <img class="pcard__photo" src="${CDN}${p.img}.jpg?width=400" alt="" decoding="async" />
-          <button class="pcard__wish" aria-label="Add to wishlist"><img src="${A}6478e.svg" alt="" /></button>
-          <button class="pcard__add sk" aria-label="Add to cart"><img src="${A}ebb99.svg" alt="" /></button>
+          <button class="pcard__wish" aria-label="Add to wishlist"><img src="${A}94524.svg" alt="" /></button>
+          <button class="pcard__add sk" aria-label="Add to cart"><img src="${A}1d902.svg" alt="" /></button>
           <span class="pcard__dots"><i></i><i></i><i></i><i></i></span>
         </div>
       </div>
       <div class="pcard__info">
         <p class="pcard__title" data-full="${p.title}">${p.title}</p>
-        <p class="pcard__rate"${p.reviews ? '' : ' style="visibility:hidden"'}><span class="star"><img src="${A}693b5.svg" alt="" /></span><b>${p.rating.toFixed(1)}&nbsp;</b><span>(${count(p.reviews)})</span></p>
+        <p class="pcard__rate"${p.reviews ? '' : ' style="visibility:hidden"'}><span class="star"><img src="${A}9d075.svg" alt="" /></span><b>${p.rating.toFixed(1)}&nbsp;</b><span>(${count(p.reviews)})</span></p>
         <p class="pcard__price">&#xE001;${p.price}</p>
-        <p class="pcard__low"${p.low ? '' : ' style="visibility:hidden"'}><img src="${A}f57c7.svg" alt="" />${p.low || 'Lowest price'}</p>
+        <p class="pcard__low"${p.low ? '' : ' style="visibility:hidden"'}><img src="${A}aaca9.svg" alt="" />${(p.low || 'Lowest price').replace('Lowest price', 'Lowest Price')}</p>
         <div class="pcard__offers"${p.offers ? '' : ' style="visibility:hidden"'}><span class="offer">Extra 10%  Off </span><span class="offer">+${p.offers || 1}</span></div>
-        <img class="pcard__badge" src="${A}7503a.svg" alt="express Today" />
+        <img class="pcard__badge" src="${A}04813.svg" alt="express Today" />
       </div>
     </article>`;
   const slots = [];
@@ -1633,15 +1633,15 @@ const Haptics = (() => {
 })();
 
 /* ══ Prototype tools ═══════════════════════════════════════════════════════
-   Beside the phone: iterations 1–2, then Reset. Each iteration is its OWN copy of
-   the flow, so they can be changed independently: 1 = / (this folder), 2 = /v2/,
+   Beside the phone: iterations 1–4, then Reset. Each iteration is its OWN copy of
+   the flow, so they can be changed independently: 1 = / (this folder), 2 = /v2/, 3 = /v3/, 4 = /v4/,
    each with its own index.html, styles.css and app.js, sharing /assets and /fonts.
    The page's iteration is <html data-variant="n">; picking another number opens
    that copy, and /?v=n jumps straight to iteration n. Reset restarts the flow on
    the same iteration (a clean reload back to Home). */
 (() => {
   const nav = document.getElementById('vswitch'); if (!nav) return;
-  const PATHS = { 1: '/', 2: '/v2/' };
+  const PATHS = { 1: '/', 2: '/v2/', 3: '/v3/', 4: '/v4/', 5: '/v5/' };
   const here = document.documentElement.dataset.variant || '1';
   const want = new URLSearchParams(location.search).get('v');
   if (want && PATHS[want] && want !== here) { location.replace(PATHS[want]); return; }

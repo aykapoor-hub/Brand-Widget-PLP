@@ -758,21 +758,21 @@ img.contain { object-fit: contain; }
 .tags__row .skel--chip { position: absolute; inset: auto; top: 0; height: 32px; }
 @media (prefers-reduced-motion: reduce) { .skel::after { animation: none; opacity: 0; } }
 
-/* PLP card — 1:1 with Figma 958:54224 "Product Cards" (SKU 958:54228 / 958:54318) */
+/* PLP card — 1:1 with Figma 323:14128 "Produc Cards" (SKU 323:14129, Sas-Motion): full-bleed photo on white */
 .pcard {
   position: absolute; inset: 0; overflow: hidden;
   background: #fff; border-radius: 12px; --sw: 1px; --sc: #f2f3f7;
   opacity: 0;
 }
-.pcard__media { position: relative; width: 170px; height: 214px; overflow: hidden; background: #fafafa; }   /* 958:54230 media panel */
+.pcard__media { position: relative; width: 170px; height: 214px; overflow: hidden; background: #fff; }   /* 323:14131 media, 170:214 */
 .pcard__clip { position: absolute; left: 0; top: 0; width: 170px; height: 218px; overflow: hidden; border-radius: 10px 10px 0 0; }
 .pcard__img { position: absolute; left: 13px; top: 19px; width: 144px; height: 181px; object-fit: cover; }   /* 944:32225 — cut-out, inset on the panel */
 .pcard__imgbox { position: absolute; left: 13px; top: 26px; width: 144px; height: 162px; overflow: hidden; }   /* 958:54321 — centred in the 214 panel */
 .pcard__imgbox img { position: absolute; left: -7.84%; top: -20.62%; width: 115.99%; height: 140.24%; }
-.pcard__photo { position: absolute; left: 13px; top: 19px; width: 144px; height: 181px; object-fit: contain; mix-blend-mode: multiply; }   /* noon.com listing photo (white bg) inset on the panel */
-.pcard__wish { position: absolute; left: 142px; top: 4px;   /* 109:22210 card: heart icon at (146, 8) */ display: flex; padding: 4px; border-radius: 9999px; background: rgba(255,255,255,.2); }
+.pcard__photo { position: absolute; left: 0; top: 0; width: 171px; height: 215.56px; object-fit: cover; }   /* 323:14133: noon.com listing photo, full bleed (171 × 215.56, cover) */
+.pcard__wish { position: absolute; left: 141.5px; top: 3px;   /* 323:14134: right 4.5, top 3 */ display: flex; padding: 4px; border-radius: 9999px; background: rgba(255,255,255,.2); }
 .pcard__wish img { width: 16px; height: 16px; }
-.pcard__add { position: absolute; left: 132px; top: 178px;   /* plus icon at (136, 182) */ display: flex; padding: 4px; border-radius: 6px; background: #fff; --sw: 1.2px; --sc: #e2e2e3; }
+.pcard__add { position: absolute; left: 132px; top: 177px;   /* 323:14149 */ display: flex; padding: 4px; border-radius: 6px; background: #fff; --sw: 1.2px; --sc: #e2e2e3; }
 .pcard__add img { width: 24px; height: 24px; }
 .pcard__dots {
   position: absolute; left: 71.5px; top: 200px; width: 27px; height: 8px;
@@ -802,8 +802,8 @@ img.contain { object-fit: contain; }
   display: flex; align-items: center; gap: 2px; padding: 2px 4px; border-radius: 4px; background: #f7f8fa;
   font-size: 12px; line-height: 14px; letter-spacing: -0.12px; white-space: nowrap; font-feature-settings: "case" 1;
 }
-.pcard__rate .star { position: relative; width: 12px; height: 12px; }
-.pcard__rate .star img { position: absolute; left: 5.77%; top: 7.16%; width: 88.46%; height: 88.01%; }   /* 944:32264 insets */
+.pcard__rate .star { position: relative; flex: none; width: 12px; height: 11.5px; }
+.pcard__rate .star img { position: absolute; left: 6.09%; top: 7.05%; width: 87.82%; height: 88.12%; }   /* 323:14172 insets 7.05% 6.09% 4.83% */
 .pcard__rate b { font-weight: 600; color: #0a4f4a; }
 .pcard__rate span { font-weight: 400; color: #666d85; }
 .pcard__price {
@@ -816,7 +816,7 @@ img.contain { object-fit: contain; }
   display: flex; align-items: center; gap: 2px;
   font-weight: 400; font-size: 12px; line-height: 18px; letter-spacing: -0.12px; color: #535a6f; white-space: nowrap;
 }
-.pcard__low img { width: 14px; height: 14px; }
+.pcard__low img { flex: none; width: 14px; height: 14px; }
 .pcard__offers { position: absolute; left: 0; top: 106px; display: flex; gap: 4px; }
 .offer {
   position: relative; height: 18px; display: flex; align-items: center; justify-content: center;
@@ -824,10 +824,8 @@ img.contain { object-fit: contain; }
   font-weight: 600; font-size: 12px; line-height: 14px; letter-spacing: -0.12px; color: #0a4f4a;
   white-space: pre; font-feature-settings: "case" 1;
 }
-/* 958:54294: the first chip's text box is a fixed 77px (truncated, so it starts at the padding) → chip 85px */
-.offer:first-child { width: 85px; justify-content: flex-start; overflow: hidden; }
 .offer::after { content: ''; position: absolute; inset: 0; border: 0.5px dashed #bbe0de; border-radius: inherit; pointer-events: none; }
-.pcard__badge { position: absolute; left: 0; top: 130px; width: 110px; height: 18px; }   /* 944:32293 */
+.pcard__badge { position: absolute; left: 0; top: 130px; width: 106.752px; height: 18px; }   /* 323:14201 (py 2 under the coupons) */
 
 .plp__scroll::after { content: ''; display: block; height: 97px; }   /* clear the bottom nav */
 
