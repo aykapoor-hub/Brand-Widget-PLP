@@ -1,4 +1,4 @@
-/* Brand Widget PLP — iteration 6 (/v6/) — iteration 4's ask-first TV widget restyled to "Find your perfect TV" (Figma 415:36689) for "samsung tv": Display / Size / Year tabs over the roster slider, Prev / Next around a live "View N results", a shared-element TV between questions, and a folded summary over the refreshed grid; asset paths point to ../assets/ */
+/* Brand Widget PLP — iteration 9 (/v9/) — iteration 4's ask-first TV widget restyled to "Find your perfect TV" (Figma 415:36689) for "samsung tv": Display / Size / Year tabs over the roster slider, Prev / Next around a live "View N results", a shared-element TV between questions, and a folded summary over the refreshed grid; asset paths point to ../assets/ */
 /* Android: phone GPUs pay heavily for animated blur filters and backdrop blurs, so on Android the
    motion keeps its timing and curves but drops the blur (transform + opacity only); html.is-android
    switches the CSS backdrop blurs off. Nothing changes on iPhone or desktop. */
@@ -348,7 +348,7 @@ const PP = (() => {
       { q: 'fitness tracker with heart rate', img: 'Z863C04E5C086CC7C08BBZ/45/_/1790146470/ab4c994e-792d-45db-8c1a-8a3b9d448321' },   // ORYX band
     ],
     tv: [   // noon.com/uae-en TV listing photos (2026-10-22)
-      { q: 'samsung tv',  img: 'Z331F6F9B84F5374FD435Z/45/_/1772180320/0d31b0ea-3e9d-4769-9bb2-dbd7e1bad196' },   // Samsung Q6F 55" — the v6 query
+      { q: 'samsung tv',  img: 'Z331F6F9B84F5374FD435Z/45/_/1772180320/0d31b0ea-3e9d-4769-9bb2-dbd7e1bad196' },   // Samsung Q6F 55" — the v9 query
       { q: 'tv',          img: 'Z331F6F9B84F5374FD435Z/45/_/1772180320/0d31b0ea-3e9d-4769-9bb2-dbd7e1bad196' },   // Samsung Q6F 55"
       { q: 'tv 55 inch',  img: 'ZC940392BDA2BDEB43C6EZ/45/_/1787835053/901b60ff-b678-4170-8339-667ede58846b' },   // Hisense 55E7Q
       { q: 'tv 65 inch',  img: 'ZE88D74FAB795619572BFZ/45/_/1779345237/d847e07e-fb7b-4c15-9624-31f0d4c3f799' },   // TCL 65" QLED
@@ -370,7 +370,7 @@ const PP = (() => {
   const seen = new Set();
   [...SETS.phone, ...SETS['fitness tracker'].map((it) => ({ q: it.q, img: 'pzsku/' + it.img })), ...SETS.tv.map((it) => ({ q: it.q, img: 'pzsku/' + it.img })), ...(window.NOON_SUGGEST || []).map(([q, img]) => ({ q, img }))]
     .forEach((s) => { if (!seen.has(s.q)) { seen.add(s.q); DATA.push(s); } });
-  // v6's query: "samsung tv" leads whenever a word of it starts with what is typed (2+ letters — "tv" finds it)
+  // v9's query: "samsung tv" leads whenever a word of it starts with what is typed (2+ letters — "tv" finds it)
   const PROMOTED = ['samsung tv'];
   const promoted = (q) => q.length >= 2 ? DATA.filter((s) => PROMOTED.includes(s.q) && s.q.split(' ').some((w) => w.startsWith(q))) : [];
   function matches(q) {
@@ -935,7 +935,7 @@ const PP = (() => {
     { sku: '', best: false, img: 'Z73C62893398960C89D79Z/45/_/1792667462/89d7cb90-afb3-47d2-95d2-96941f893dbe', title: "Xiaomi TV A 50 2026 | 4K eye-care display with HDR picture quality | 120Hz refresh rate under Game Boost mode via HDMI", rating: 4, reviews: 19, price: '1133', offers: 1 },
   ];
   const T_ALL = [T_SAMSUNG[1], T_HISENSE[0], T_LG[0], T_XIAOMI[0], T_TCL[0], T_SONY[2], T_SAMSUNG[2], T_HISENSE[4]];
-  if (window.TV_DATA) T_ALL.splice(0, T_ALL.length, ...window.TV_DATA.slice(0, 8));   // v6 searches "samsung tv": noon's first eight Samsung hits
+  if (window.TV_DATA) T_ALL.splice(0, T_ALL.length, ...window.TV_DATA.slice(0, 8));   // v9 searches "samsung tv": noon's first eight Samsung hits
   const TV_LISTS = { all: T_ALL, Samsung: T_SAMSUNG, LG: T_LG, Sony: T_SONY, TCL: T_TCL, Hisense: T_HISENSE, Xiaomi: T_XIAOMI };
   // the page's category follows the query that opened it; LISTS is the current one
   const CATS = { phone: PHONE_LISTS, fitness: FIT_LISTS, tv: TV_LISTS };
@@ -1099,7 +1099,7 @@ const PP = (() => {
   plp.addEventListener('plp:filter', (e) => swapTo((e.detail && e.detail.brand) || (LISTS.picks ? 'picks' : 'all')));
 
   /* The picker's View (plp:results {list, at}): the grid shows exactly those TVs — noon's hits for the chosen
-     display, size and year (v6/tv-data.js) — rising in at detail.at */
+     display, size and year (v9/tv-data.js) — rising in at detail.at */
   plp.addEventListener('plp:results', (e) => {
     TV_LISTS.results = e.detail.list;
     if (listKey === 'results') listKey = null;   // a second View (after Edit) swaps again
@@ -1507,7 +1507,7 @@ const PP = (() => {
      segment and the next question slides in from the right; Back mirrors it,
      keeping the answer. "Show my picks" → "Personalizing for you" (text over
      soft drifting glows) while the grid shimmers, then the rail rises in with
-     each brand's best match (iteration 4; v6 folds into a summary instead, see fold). */
+     each brand's best match (iteration 4; v9 folds into a summary instead, see fold). */
   // opts: [label, value, hint, [photo, size]] — each answer is a real noon TV, cut out (assets/tv/*.webp), at a relative size
   const QUESTIONS = [
     // one TV whose picture wipes from one screen type to the next as the ruler moves (single + screen):
@@ -1526,7 +1526,7 @@ const PP = (() => {
       opts: [['2026', [2026, 2026], 'The latest line-up', ['neoqled', 1]], ['2025', [2025, 2025], 'Last year’s line-up', ['q8f', 0.95]],
              ['2024 & older', [2015, 2024], 'Earlier models', ['crystal', 0.86]], ['All years', null, 'Every model year', ['qled65', 0.9]]] },
   ];
-  /* "View N results" and the results themselves: every Samsung TV noon lists for "samsung tv" (v6/tv-data.js),
+  /* "View N results" and the results themselves: every Samsung TV noon lists for "samsung tv" (v9/tv-data.js),
      filtered here on display, size and year, so the count and the grid always agree */
   const fits = (p, i, k) => {   // does TV p fit answer k of question i (k null, or a no-preference answer: yes)
     const v = k == null ? null : QUESTIONS[i].opts[k][1];
@@ -2466,7 +2466,7 @@ const Haptics = (() => {
    the same iteration (a clean reload back to Home). */
 (() => {
   const nav = document.getElementById('vswitch'); if (!nav) return;
-  const PATHS = { 1: '/', 2: '/v2/', 3: '/v3/', 4: '/v4/', 5: '/v5/', 6: '/v6/' };
+  const PATHS = { 1: '/', 2: '/v2/', 3: '/v3/', 4: '/v4/', 5: '/v5/', 6: '/v6/', 7: '/v7/', 8: '/v8/', 9: '/v9/' };
   const here = document.documentElement.dataset.variant || '1';
   const want = new URLSearchParams(location.search).get('v');
   if (want && PATHS[want] && want !== here) { location.replace(PATHS[want]); return; }

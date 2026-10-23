@@ -948,7 +948,7 @@ img.contain { object-fit: contain; }
    frame they scroll; at 64 % / 100 % black the blur is invisible anyway) — see IS_ANDROID in app.js */
 .is-android .vid, .is-android .lc__btn { -webkit-backdrop-filter: none; backdrop-filter: none; }
 
-/* ── Iteration 6 (from 4): the TV brand widget asks first, as "Find your perfect TV" (app.js "TV searches ask before they show") ──
+/* ── Iteration 9 (from 4): the TV brand widget asks first, as "Find your perfect TV" (app.js "TV searches ask before they show") ──
    A three-step picker where the rail sits. One 14px side margin throughout; vertical rhythm from the
    header: progress 12 below the title · question 20 below it · tiles 16 below the subtitle · footer
    pinned 12 above the panel's bottom edge. Then "Personalizing for you": text over soft glows. */
@@ -1057,7 +1057,7 @@ img.contain { object-fit: contain; }
 .tvs__pill:active { background: #e6e8ef; }
 
 
-/* ── Iteration 6, TV results (415:36690): no chip row — the scroll area starts under the header (y 158) and the
+/* ── Iteration 9, TV results (415:36690): no chip row — the scroll area starts under the header (y 158) and the
    widget (415:41253) sits 12 below it: 352 × 436 at x 12, white with a 1px #f2f3f7 hairline, radius 16;
    products 12 below it at y 618 (box 12 + 436 + 12 − the grid's 2px top padding = 458, app.js H), cards at x 12 like the widget */
 .plp.is-tv .plp__tags { display: none; }
@@ -1065,7 +1065,7 @@ img.contain { object-fit: contain; }
 .plp.is-tv .plp__grid { padding-left: 12px; }
 .plp.is-tv .brw__bar { left: 12px; top: 12px; width: 352px; height: 436px; box-sizing: border-box; border: 1px solid #f2f3f7; background: #fff; }
 
-/* Iteration 6 step change (app.js fly): the flyer that carries the TV from one question to the next */
+/* Iteration 9 step change (app.js fly): the flyer that carries the TV from one question to the next */
 .qz__fly { position: absolute; z-index: 3; pointer-events: none; transform-origin: 0 0; will-change: transform; }
 .qz__flyin { position: absolute; inset: 0; transform-origin: 50% 100%; }
 .qz__flyin > * { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important; margin: 0; visibility: visible !important; }

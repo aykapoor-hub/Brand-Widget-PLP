@@ -1,4 +1,4 @@
-/* v6's TV picker data: every noon.com/uae-en "samsung tv" search hit filtered to brand Samsung (2026-10-23), in noon's
+/* v9's TV picker data: every noon.com/uae-en "samsung tv" search hit filtered to brand Samsung (2026-10-23), in noon's
    relevance order. d = display from the title first (noon's spec mislabels some Samsung sets; The Frame is QLED), else the spec:
    1 QLED incl. Neo QLED, 2 Mini LED, 3 OLED, 0 other, in = screen inches, y = model year
    (from the title, else the model code's year letter: H 2026, F 2025, D 2024, C 2023, B 2022, A 2021; 0 = unknown) */
