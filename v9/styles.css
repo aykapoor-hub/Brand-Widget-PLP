@@ -1039,7 +1039,7 @@ img.contain { object-fit: contain; }
 .qz__next:active { transform: scale(.96); background: #3a3a3a; }
 
 /* View results — the picker folds into a 64px summary (app.js fold) on a soft grey panel: the results deck on the left,
-   "Your TV matches" with the answers under it, Edit on the right, all centred on the row; the grid sits 12 below */
+   "N matches found" with the answers under it, Edit on the right, all centred on the row; the grid sits 12 below */
 .brw__bar { transition: background-color .3s ease, border-color .3s ease; }
 .plp.is-tv .brw.is-summary .brw__bar { background: #f7f8fa; border-color: #f7f8fa; }
 .tvs { position: absolute; left: 0; top: 0; width: 350px; height: 64px; pointer-events: none; }

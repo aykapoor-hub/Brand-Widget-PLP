@@ -2092,13 +2092,13 @@ const PP = (() => {
        t = 0     the old products dissolve into their shimmering skeletons (plp:results → swapTo) and the
                  picker's contents fade
        t = 0     the panel folds to a 64px summary on the select morph's spring (settled by ~450ms) and turns
-                 grey: the results deck on the left (the slot's TV flies into its front card), "Your TV matches"
+                 grey: the results deck on the left (the slot's TV flies into its front card), "N matches found"
                  with the answers under it, Edit on the right
        t = 820   the matches rise into the grid, staggered, once the fold has settled
      Edit opens the question the picker was left on, answers kept. */
   const RESULTS_AT = 820;
   const TV_SUM = 66, H_SUM = 12 + TV_SUM + 12 - 2;   // the panel (64 + its 2px border), the box (12 + panel + 12 gap − the grid's 2px top padding)
-  const sum = node(`<div class="tvs" aria-hidden="true"><span class="tvs__tv"></span><p class="tvs__title">Your TV matches</p><p class="tvs__line"></p><button class="tvs__edit" type="button">Edit</button></div>`);
+  const sum = node(`<div class="tvs" aria-hidden="true"><span class="tvs__tv"></span><p class="tvs__title"></p><p class="tvs__line"></p><button class="tvs__edit" type="button">Edit</button></div>`);
   bar.appendChild(sum);
   const sumTitle = sum.querySelector('.tvs__title'), sumLine = sum.querySelector('.tvs__line'), sumEdit = sum.querySelector('.tvs__edit'), sumTv = sum.querySelector('.tvs__tv');
   /* the thumbnail: the top three results as a small deck of TV-shaped cards (the best match in front, the next two
@@ -2129,6 +2129,8 @@ const PP = (() => {
   let folded = false;
   function fold() {
     const picked = QUESTIONS.map((Q, i) => (pick(i) == null ? null : Q.opts[pick(i)][0].trim())).filter(Boolean);
+    const n = total();
+    sumTitle.textContent = `${n} match${n === 1 ? '' : 'es'} found`;
     sumLine.textContent = picked.length ? picked.join(' · ') : 'All Samsung TVs';
     const list = window.TV_DATA.filter(matches).slice(0, 8), thumb = paintThumb(list);
     folded = true; box.classList.add('is-summary'); sum.removeAttribute('aria-hidden');
