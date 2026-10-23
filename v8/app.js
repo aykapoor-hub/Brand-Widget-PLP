@@ -617,12 +617,12 @@ const PP = (() => {
   const chips  = [...plp.querySelectorAll('.chip')];
   const A = '../assets/';
 
-  /* the PLP header on scroll — the "noon App GitFlow" PLP 1:1 (noon-app-skill src/flows/plp/scrollStates.ts =
-     bappzaar HidableView): the search bar block never moves; the marketplace tabs + chips (their measured
-     height h = 117) hide when scrolling down, more than h past where that downward run began, and past y h;
-     they come back when scrolling up more than h from where the upward run began, or above y h. Either way
-     they slide by their own height under the search block on RN's Animated.timing default — 300ms,
-     inOut(ease) with ease = bezier(.42, 0, 1, 1). The products scroll under the header (a spacer of h opens
+  /* the PLP header on scroll — the "noon App GitFlow" PLP's slide (noon-app-skill src/flows/plp/scrollStates.ts =
+     bappzaar HidableView): the search bar block never moves; the marketplace tabs + chips (117) slide by their
+     own height under it on RN's Animated.timing default — 300ms, inOut(ease) with ease = bezier(.42, 0, 1, 1).
+     Iteration 8 triggers it on a slight scroll (user request), on the same frame the TV widget folds and the
+     nav leaves: down 6px past where the downward run began (and past y 10) hides it; up 24px (GitFlow's
+     tab-bar show distance) or back within 10 of the top shows it. The products scroll under the header (a spacer of h opens
      the list) and the pinned TV widget rides up with it (styles.css --plp-hide). */
   const hidable = (() => {
     const mps = plp.querySelector('.plp__mps'), els = [mps, plp.querySelector('.plp__tags'), document.getElementById('brandWidget')];
@@ -644,14 +644,15 @@ const PP = (() => {
     };
     scroll.addEventListener('scroll', () => {
       if (!plp.classList.contains('is-open')) return;
-      const y = scroll.scrollTop, h = mps.offsetHeight + els[1].offsetHeight || 20, dir = y > prevY ? 'down' : 'up';
-      if (dir === 'down' && prevDir === 'up') downStart = y;
-      if (dir === 'up' && prevDir === 'down') upStart = y;
-      if (!hidden && dir === 'down' && y - downStart > h && y > h) { to(1); hidden = true; }
-      if (hidden && dir === 'up' && (y - upStart < -h || y < h)) { to(0); hidden = false; }
+      const y = scroll.scrollTop, dir = y > prevY ? 'down' : y < prevY ? 'up' : prevDir;
+      els[2].classList.toggle('is-over', y > 2);   // the pinned TV bar's band shadows the products passing under it
+      if (dir === 'down' && prevDir === 'up') downStart = prevY;
+      if (dir === 'up' && prevDir === 'down') upStart = prevY;
+      if (!hidden && dir === 'down' && y - downStart > 6 && y > 10) { to(1); hidden = true; }
+      if (hidden && dir === 'up' && (y - upStart < -24 || y <= 10)) { to(0); hidden = false; }
       prevY = y; prevDir = dir;
     }, { passive: true });
-    return { reset() { cancelAnimationFrame(raf); hidden = false; prevY = 0; prevDir = 'up'; downStart = upStart = 0; set(0); } };
+    return { reset() { cancelAnimationFrame(raf); els[2].classList.remove('is-over'); hidden = false; prevY = 0; prevDir = 'up'; downStart = upStart = 0; set(0); } };
   })();
 
   // times are from the end of the suggestions' exit (nothing overlaps it); SKEL_MS is the layer fade
@@ -2081,12 +2082,12 @@ const PP = (() => {
        · the layer: a faint dot grid (2px, 16 apart) that slow, wide, soft ripples keep crossing from
                the screen's centre (190px/s, every 1.05s), fading toward the edges; a round cool glow
                breathing behind the one line of text — "Personalizing for you" (Noontree SemiBold 20,
-               ink, a light sweep crossing it every 1.6s) — centred on the screen
+               ink, a light sweep crossing it every 1.6s) over a progress line that fills over the beat — centred on the screen
        · 320   hidden under it, the widget becomes the collapsed bar (64) and the grid sits up under it
        · 2080  the matched cards are already in place under the layer
        · 2600  the reveal (see below)
      Edit (on the collapsed bar) opens the widget back on the last question. */
-  const PZ8 = { HOLD: 2600, UNDER: 320, COL_BAR: 64, COL_H: 73, DOT: 16, SPEED: 190, WAVE: 64, EVERY: 1.05, REACH: 620 };
+  const PZ8 = { HOLD: 2600, UNDER: 320, COL_BAR: 64, COL_H: 73, DOT: 16, SPEED: 240, WAVE: 56, EVERY: 0.85, REACH: 640 };
   const qd = node(`<div class="qd">
       <span class="qd__ic" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="9.5" rx="1.6" stroke="#1d2539" stroke-width="1.5"/><path d="M6.5 15h5" stroke="#1d2539" stroke-width="1.5" stroke-linecap="round"/></svg></span>
       <span class="qd__txt"><b class="qd__t">Your TV matches</b><span class="qd__s"></span></span>
@@ -2111,8 +2112,10 @@ const PP = (() => {
           k += Math.exp(-(((d - R) / PZ8.WAVE) ** 2)) * a * a * (3 - 2 * a) * b * b * (3 - 2 * b);
         }
         k = Math.min(1, k);
-        g.globalAlpha = (0.06 + 0.12 * k) * near;
-        g.beginPath(); g.arc(x, y, 1 + 0.35 * k, 0, Math.PI * 2); g.fill();
+        // the grid at rest is faint ink; a passing wave lights its dots in the glow's blue and swells them
+        g.fillStyle = '#1d2539'; g.globalAlpha = 0.06 * near * (1 - k);
+        g.beginPath(); g.arc(x, y, 1, 0, Math.PI * 2); g.fill();
+        if (k > 0.01) { g.fillStyle = '#5a6fe0'; g.globalAlpha = 0.55 * k * near; g.beginPath(); g.arc(x, y, 1 + 0.85 * k, 0, Math.PI * 2); g.fill(); }
       }
       if (now - t0 < ms && canvas.isConnected) requestAnimationFrame(frame);
     };
@@ -2131,7 +2134,8 @@ const PP = (() => {
     setNav(true);
     const pz = node(`<div class="pzf" aria-live="polite">
         <canvas class="pzf__dots" aria-hidden="true"></canvas><i class="pzf__glow" aria-hidden="true"></i>
-        <p class="pzf__t" aria-label="Personalizing for you">${[...'Personalizing for you'].map((ch, i) => `<span class="pzf__ch" style="--i:${i}" aria-hidden="true">${ch === ' ' ? '&nbsp;' : ch}</span>`).join('')}</p>
+        <p class="pzf__t"><span class="pzf__s">Personalizing for you</span></p>
+        <span class="pzf__bar" role="progressbar" aria-label="Personalizing" aria-valuemin="0" aria-valuemax="100"><i></i></span>
       </div>`);
     const tg = plp.querySelector('.plp__tags'); pz.style.top = `${tg.offsetTop + tg.offsetHeight}px`;   // under the header: search bar, marketplace tabs and chips stay
     plp.appendChild(pz);
@@ -2140,13 +2144,23 @@ const PP = (() => {
     ripple(pz.querySelector('canvas'), W, Hh, W / 2, cy, PZ8.HOLD + 600);
     const title = pz.querySelector('.pzf__t');
     PP.commit(pz, [pz.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 280, easing: 'cubic-bezier(.33,1,.68,1)', fill: 'both' })], { opacity: 1 });
-    /* the line runs in letter by letter (left → right, 14ms apart from 100ms): each letter rises 8 → 0 and
-       sharpens (blur 4 → 0) on one decelerating curve (360ms) as it fades in (filter: opacity()) — all in
-       by ~0.75s; then the CSS letter run takes over (styles.css .pzf__ch) */
-    const chars = [...title.querySelectorAll('.pzf__ch')];
+    /* the line arrives whole (from 100ms): it rises 8 → 0 and sharpens (blur 4 → 0) on one decelerating
+       curve (420ms) as it fades in; then a light band sweeps across it to show it's loading (styles.css .pzf__s) */
+    const line = title.querySelector('.pzf__s');
     title.style.opacity = 1;
-    chars.forEach((c, i) => c.animate([{ translate: '0 8px', filter: 'blur(4px) opacity(0)' }, { translate: '0 0', filter: 'blur(0) opacity(1)' }],
-      { duration: 360, delay: 100 + i * 14, easing: 'cubic-bezier(.2,0,0,1)', fill: 'backwards' }));
+    line.animate([{ translate: '0 8px', filter: 'blur(4px)', opacity: 0 }, { translate: '0 0', filter: 'blur(0)', opacity: 1 }],
+      { duration: 420, delay: 100, easing: 'cubic-bezier(.2,0,0,1)', fill: 'backwards' });
+    /* the progress line arrives 60ms after the text (rise 6 + fade, 360ms) and fills over the whole beat like
+       real work: a quick start (32% by 0.5s), a slower middle, the last stretch landing at 2.45s — just
+       before the page lifts — each stretch on its own easing so the fill never stops dead */
+    const pbar = pz.querySelector('.pzf__bar'), pfill = pbar.firstChild;
+    pbar.animate([{ translate: '0 6px', opacity: 0 }, { translate: '0 0', opacity: 1 }], { duration: 360, delay: 160, easing: 'cubic-bezier(.2,0,0,1)', fill: 'backwards' });
+    pfill.animate([
+      { translate: '-100% 0', easing: 'cubic-bezier(.3,.6,.5,1)' },
+      { translate: '-68% 0', offset: 0.2, easing: 'cubic-bezier(.45,.2,.55,.9)' },
+      { translate: '-30% 0', offset: 0.72, easing: 'cubic-bezier(.4,.3,.3,1)' },
+      { translate: '0 0' },
+    ], { duration: PZ8.HOLD - 400, delay: 250, fill: 'both' });
     // hidden under the layer: the widget becomes the collapsed bar, the grid sits up under it
     later(PZ8.UNDER, () => {
       [qBar, stage, qActs, qTT].forEach((el) => { el.getAnimations().forEach((a) => a.cancel()); el.style.opacity = 0; });
@@ -2157,8 +2171,7 @@ const PP = (() => {
       void bar.offsetWidth; bar.style.transition = '';
     });
     /* the exit and the reveal, overlapped into one breath:
-         · 2600  the letters run out the way they came (left → right, 7ms apart): each lifts 6 and fades
-                 (220ms, in-out cubic — filter: opacity(), the wave owns opacity); the glow and the dot
+         · 2600  the line lifts 6 and fades (260ms, in-out cubic); the glow and the dot
                  grid fade with them (360ms) — so nothing is left on the white but white
          · 2870  the white fades away (480ms, in-out cubic) as the page under it settles: the collapsed bar
                  rises 12 → 0 on one decelerating curve (600ms); the grid's skeletons stay still (sliding
@@ -2167,7 +2180,7 @@ const PP = (() => {
          · 3320  the matched cards rise in over their skeletons, staggered (the PLP's own swap reveal) */
     later(PZ8.HOLD, () => {
       const EASE = 'cubic-bezier(.2,0,0,1)', IO = 'cubic-bezier(.65,0,.35,1)', glow = pz.querySelector('.pzf__glow'), dots = pz.querySelector('.pzf__dots');
-      chars.forEach((c, i) => c.animate([{ translate: '0 0', filter: 'opacity(1)' }, { translate: '0 -6px', filter: 'opacity(0)' }], { duration: 220, delay: i * 7, easing: IO, fill: 'forwards' }));
+      [line, pbar].forEach((el, i) => el.animate([{ translate: '0 0', opacity: 1 }, { translate: '0 -6px', opacity: 0 }], { duration: 260, delay: i * 30, easing: IO, fill: 'forwards' }));
       [glow, dots].forEach((el) => el.animate([{ filter: 'opacity(1)' }, { filter: 'opacity(0)' }], { duration: 360, easing: IO, fill: 'forwards' }));
       later(270, () => {
         PP.commit(pz, [pz.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 480, easing: IO, fill: 'both' })], { opacity: 0 });
@@ -2277,25 +2290,28 @@ const PP = (() => {
     });
     fitTrack();
   }
-  /* the question's title is ONE shared line above the questions (iteration 8), so a question change rolls
-     it like a ticker inside a soft-edged mask instead of fading it with the page: the old title rolls up and
-     out (28px, 460ms decelerating, fading + a 2px blur), the new one rolls up from below into its place
-     (500ms, +40ms, sharpening as it fades in) — ‹ rolls the other way. The page keeps an invisible copy
-     for its layout. */
+  /* the question's title is ONE shared line above the questions (iteration 8). A question change hands it
+     over cleanly — the two titles never show together: the old one lifts 10px and is gone in 180ms (in-out
+     cubic, softening with a 3px blur); the new one starts as it leaves (+140ms), rising 10 → 0 on a
+     decelerating curve (440ms) while it fades in (300ms, out-cubic) and sharpens — ‹ moves the other way.
+     An interrupted line leaves from wherever it is. The page keeps an invisible copy for its layout. */
   function setTitle(text, dir) {
     const cur = qTT.querySelector('.qz__ttl:not(.is-out)');
     if (cur && cur.textContent === text) return;
+    qTT.querySelectorAll('.qz__ttl.is-out').forEach((x) => x.remove());   // a line still leaving from a fast double tap
     const line = node(`<p class="qz__ttl">${text}</p>`); qTT.appendChild(line);
-    const EASE = 'cubic-bezier(.2,0,0,1)', D = 28 * (dir < 0 ? -1 : 1);
+    const EASE = 'cubic-bezier(.2,0,0,1)', OUTC = 'cubic-bezier(.33,1,.68,1)', IO = 'cubic-bezier(.65,0,.35,1)', D = 10 * (dir < 0 ? -1 : 1);
     if (!cur || !dir) {
       if (cur) cur.remove();
       line.animate([{ translate: '0 12px', opacity: 0 }, { translate: '0 0', opacity: 1 }], { duration: 460, delay: 80, easing: EASE, fill: 'backwards' });
       return;
     }
     cur.classList.add('is-out');
+    const cs = getComputedStyle(cur), op = +cs.opacity, ty = parseFloat((cs.translate || '0 0').split(' ')[1]) || 0;
     cur.getAnimations().forEach((a) => a.cancel());
-    cur.animate([{ translate: '0 0', opacity: 1, filter: 'blur(0)' }, { translate: `0 ${-D}px`, opacity: 0, filter: 'blur(2px)' }], { duration: 460, easing: EASE, fill: 'forwards' }).finished.then(() => cur.remove()).catch(() => {});
-    line.animate([{ translate: `0 ${D}px`, opacity: 0, filter: 'blur(2px)' }, { translate: '0 0', opacity: 1, filter: 'blur(0)' }], { duration: 500, delay: 40, easing: EASE, fill: 'backwards' });
+    cur.animate([{ translate: `0 ${ty}px`, opacity: op, filter: 'blur(0)' }, { translate: `0 ${ty - D}px`, opacity: 0, filter: 'blur(3px)' }], { duration: 180, easing: IO, fill: 'forwards' }).finished.then(() => cur.remove()).catch(() => {});
+    line.animate([{ translate: `0 ${D}px`, filter: 'blur(3px)' }, { translate: '0 0', filter: 'blur(0)' }], { duration: 440, delay: 140, easing: EASE, fill: 'backwards' });
+    line.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 140, easing: OUTC, fill: 'backwards' });
   }
   const ARROW = { W: 36, GAP: 8, RIGHT: 329, MID: 171.5 };   // MID: the row's centre (ask x)
   // on the last question (no ›) Apply takes the ›'s place and the ‹ sits 8 to its left
