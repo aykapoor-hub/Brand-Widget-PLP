@@ -1564,7 +1564,7 @@ const PP = (() => {
     <div class="qz__stage"></div>
     <div class="qz__foot">
       <button class="qz__step qz__step--prev" type="button"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.75 3.5 5.25 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Prev</button>
-      <button class="qz__next" type="button">View results</button>
+      <button class="qz__next" type="button">View Results</button>
       <button class="qz__step qz__step--fwd" type="button">Next<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.25 3.5 10.75 8l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     </div>`;
   bar.appendChild(ask);
@@ -1582,7 +1582,7 @@ const PP = (() => {
   const warmed = new Set();
   function paintCta() {
     const n = total();
-    qNext.textContent = n ? `View ${n} results` : 'No matching TVs';   // plain digits, as in 415:41351
+    qNext.textContent = n ? `View ${n} Results` : 'No matching TVs';   // plain digits, as in 415:41351
     qNext.disabled = !n;
     // the deck's three photos load now, so they're ready when View folds the panel
     window.TV_DATA.filter(matches).slice(0, 3).forEach((p) => { if (warmed.has(p.img)) return; warmed.add(p.img); const im = new Image(); im.src = `${NOON}${p.img}.jpg?width=400`; });
@@ -2098,14 +2098,14 @@ const PP = (() => {
        t = 1180  the title becomes "Showing N results", with the cards landing
      A pill opens its question; Edit opens the one the picker was left on. Answers are kept either way. */
   const RESULTS_AT = 820, COUNTED_AT = 1180;
-  let TV_SUM = 90, H_SUM = 112;   // set per fold: the panel (pills top 44 + their rows + 14, at least the thumbnail's 76, + the 2px border), the box (12 + panel + 12 gap − the grid's 2px top padding)
+  let TV_SUM = 82, H_SUM = 104;   // set per fold: the panel (pills top 42 + their rows + 14 + the 2px border), the box (12 + panel + 12 gap − the grid's 2px top padding)
   const sum = node(`<div class="tvs" aria-hidden="true"><span class="tvs__tv"></span><p class="tvs__title" aria-live="polite"></p><button class="tvs__edit" type="button">Edit</button><div class="tvs__pills"></div></div>`);
   bar.appendChild(sum);
   const sumPills = sum.querySelector('.tvs__pills'), sumSub = sum.querySelector('.tvs__title'), sumEdit = sum.querySelector('.tvs__edit'), sumTv = sum.querySelector('.tvs__tv');
   /* the thumbnail: the top three results as a small deck of TV-shaped cards (the best match in front, the next two
      peeking above it), so the row shows real products; it returns the front card, which the slot's TV flies into.
      With no results it falls back to the TV you built (the chosen display type's picture on the set). */
-  const TILE = 40, DECK = [{ y: 0, k: 1 }, { y: -5, k: 0.88 }, { y: -10, k: 0.76 }];   // the deck's height incl. the peeks; each card's lift and scale
+  const TILE = 35, DECK = [{ y: 0, k: 1 }, { y: -4, k: 0.88 }, { y: -8, k: 0.76 }];   // the deck's height incl. the peeks; each card's lift and scale
   const deckT = (k) => (k ? `translateY(${DECK[k].y}px) scale(${DECK[k].k})` : 'none');
   function paintThumb(list) {
     const top = list.slice(0, 3);
@@ -2115,7 +2115,7 @@ const PP = (() => {
       return sumTv.firstElementChild;
     }
     const t = pick(0), scr = QUESTIONS[0].opts[t == null ? 0 : t][3][0];
-    sumTv.innerHTML = `<span class="tvs__set"><img src="../assets/tv/qled65.webp" width="44" height="27" alt="" />
+    sumTv.innerHTML = `<span class="tvs__set"><img src="../assets/tv/qled65.webp" width="36" height="22" alt="" />
       <span class="tvs__scr" style="left:${SCREEN.l}%;top:${SCREEN.t}%;width:${SCREEN.w}%;height:${SCREEN.h}%"><b style="background-image:url(../assets/tv/screen-${scr}.webp)"></b></span></span>`;
     return sumTv.firstElementChild;
   }
@@ -2133,8 +2133,9 @@ const PP = (() => {
     sumPills.innerHTML = (picked.length ? picked : [{ i: 0, label: 'All TVs' }]).map((x) => `<button class="tvs__pill" type="button" data-k="${x.i}">${x.label}</button>`).join('');
     sumSub.textContent = 'Updating results…';
     const list = window.TV_DATA.filter(matches).slice(0, 8), thumb = paintThumb(list);
-    TV_SUM = 44 + sumPills.offsetHeight + 14 + 2; H_SUM = 12 + TV_SUM + 12 - 2;
-    sumTv.style.top = `${Math.round((TV_SUM - 2 - TILE) / 2)}px`;   // the stack sits centred beside the title and pills
+    TV_SUM = 42 + sumPills.offsetHeight + 14 + 2; H_SUM = 12 + TV_SUM + 12 - 2;
+    sumTv.style.top = `${Math.round((TV_SUM - 2 - TILE) / 2)}px`;   // the deck and Edit sit centred on the title + pills block
+    sumEdit.style.top = `${Math.round((TV_SUM - 2 - 32) / 2)}px`;
     folded = true; box.classList.add('is-summary'); sum.removeAttribute('aria-hidden');
     list.forEach((p) => { const im = new Image(); im.decoding = 'async'; im.src = `${NOON}${p.img}.jpg?width=400`; });   // photos load during the fold, not after the cards rise
     plp.dispatchEvent(new CustomEvent('plp:results', { detail: { list, at: RESULTS_AT } }));   // skeletons now, the matches once the fold has settled

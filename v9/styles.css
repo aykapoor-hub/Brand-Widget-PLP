@@ -1045,16 +1045,16 @@ img.contain { object-fit: contain; }
 .tvs { position: absolute; left: 0; top: 0; width: 350px; pointer-events: none; }
 .brw.is-summary .tvs { pointer-events: auto; }
 .brw.is-summary .brw__ask { pointer-events: none; }
-.tvs__title { position: absolute; left: 83px; top: 14px; width: 180px; font-weight: 600; font-size: 15px; line-height: 20px; letter-spacing: -0.2px; color: #1d2539; white-space: nowrap; opacity: 0; }
-.tvs__edit { position: absolute; right: 12px; top: 8px; height: 32px; padding: 0 14px; display: inline-flex; align-items: center; justify-content: center;
+.tvs__title { position: absolute; left: 71px; top: 14px; width: 196px; font-weight: 600; font-size: 15px; line-height: 20px; letter-spacing: -0.2px; color: #1d2539; white-space: nowrap; opacity: 0; }
+.tvs__edit { position: absolute; right: 12px; top: 25px; height: 32px; padding: 0 14px; display: inline-flex; align-items: center; justify-content: center;
   border: 1px solid #e2e5f1; border-radius: 16px; background: #fff; font-weight: 600; font-size: 13px; line-height: 16px; color: #1d2539; opacity: 0;
   -webkit-tap-highlight-color: transparent; transition: background-color .15s, transform .18s cubic-bezier(.32,.72,0,1); }
 .tvs__edit:active { background: #f3f4f8; transform: scale(.96); }
-.tvs__pills { position: absolute; left: 83px; top: 44px; width: 255px; display: flex; flex-wrap: wrap; gap: 6px; }
-.tvs__pill { flex: none; max-width: 100%; height: 28px; padding: 0 11px; display: inline-flex; align-items: center; border-radius: 14px; background: #fff; border: 1px solid #e6e8ef;
-  font-weight: 600; font-size: 13px; line-height: 16px; letter-spacing: -0.1px; color: #1d2539; white-space: nowrap; opacity: 0;
-  -webkit-tap-highlight-color: transparent; transition: background-color .15s, border-color .15s; }
-.tvs__pill:active { background: #f3f4f8; }
+.tvs__pills { position: absolute; left: 71px; top: 42px; width: 196px; display: flex; flex-wrap: wrap; gap: 6px; }
+.tvs__pill { flex: none; max-width: 100%; height: 24px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: 12px; background: #f3f4f8; border: 0;
+  font-weight: 600; font-size: 12px; line-height: 16px; letter-spacing: -0.1px; color: #1d2539; white-space: nowrap; opacity: 0;
+  -webkit-tap-highlight-color: transparent; transition: background-color .15s; }
+.tvs__pill:active { background: #e6e8ef; }
 
 
 /* ── Iteration 6, TV results (415:36690): no chip row — the scroll area starts under the header (y 158) and the
@@ -1074,12 +1074,12 @@ img.contain { object-fit: contain; }
 /* summary thumbnail (app.js paintThumb): the top three results as a deck of TV-shaped cards — the whole set in each
    (a landscape crop of noon's photo), the best match in front, the next two peeking 5 and 10px above it; with no
    results, the TV you built on a soft pad. Title and pills start 12 after it. */
-.tvs__tv { opacity: 0; position: absolute; left: 15px; top: 23px; width: 56px; height: 40px; }
-.tvs__p { position: absolute; left: 0; bottom: 0; width: 56px; height: 34px; border-radius: 7px; opacity: 0; transform-origin: 50% 0;
+.tvs__tv { opacity: 0; position: absolute; left: 15px; top: 23px; width: 44px; height: 35px; }
+.tvs__p { position: absolute; left: 0; bottom: 0; width: 44px; height: 27px; border-radius: 6px; opacity: 0; transform-origin: 50% 0;
   background: #fff 50% 50% / 100% auto no-repeat; box-shadow: 0 0 0 1px #e6e8ef, 0 2px 6px rgba(29,37,57,.1); }
-.tvs__tv.is-built { width: 56px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+.tvs__tv.is-built { width: 44px; height: 35px; border-radius: 9px; display: flex; align-items: center; justify-content: center;
   background: radial-gradient(70% 60% at 50% 45%, #fff 0%, #f3f4f8 100%); box-shadow: inset 0 0 0 1px #eef0f5; }
-.tvs__set { position: relative; display: block; width: 44px; filter: drop-shadow(0 3px 4px rgba(29,37,57,.14)); }
+.tvs__set { position: relative; display: block; width: 36px; filter: drop-shadow(0 3px 4px rgba(29,37,57,.14)); }
 .tvs__set img { display: block; width: 100%; height: auto; }
 .tvs__scr { position: absolute; overflow: hidden; border-radius: 1px; background: #000; }
 .tvs__scr b { position: absolute; inset: 0; background-size: cover; background-position: 50% 50%; }
