@@ -109,6 +109,7 @@ if (IS_ANDROID) document.documentElement.classList.add('is-android');
 
   /* ── Recommended tabs ────────────────────────────────────────────── */
   const tabs = document.getElementById('tabs');
+  if (!tabs) return;   // the Home is the GitFlow Home now (#nkHome): none of this markup exists
   tabs.addEventListener('click', (e) => {
     const t = e.target.closest('.tab');
     if (!t) return;
@@ -270,6 +271,17 @@ const PP = (() => {
   });
 
   entry.addEventListener('click', openSearch);
+  // the GitFlow Home (#nkHome, React): its search bar opens this page's Search, with the hint it was showing
+  const nk = document.getElementById('nkHome');
+  if (nk) nk.addEventListener('click', (e) => {
+    const bar = e.target.closest && e.target.closest('button[data-hint-prefix]');
+    if (!bar || e.target.closest('[aria-label*="amera" i]')) return;
+    e.preventDefault(); e.stopPropagation();
+    const r = bar.getBoundingClientRect();
+    const word = [...bar.querySelectorAll('[class*="_word_"]')].find((w) => { const b = w.getBoundingClientRect(); return b.top >= r.top - 1 && b.bottom <= r.bottom + 1; });
+    input.placeholder = `${bar.dataset.hintPrefix} ${word ? word.textContent.trim() : '“Apple”'}`;
+    openSearch();
+  }, true);
   entry.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSearch(); }
   });
@@ -928,24 +940,27 @@ const PP = (() => {
   let cat = 'phone', LISTS = PHONE_LISTS;
   // noon's review counts: 995 → "995", 2857 → "2.9K", 33767 → "33.8K"
   const count = (n) => n < 1000 ? String(n) : `${(n / 1000).toFixed(1).replace(/\.0$/, '')}K`;
+  // the GitFlow listing card (its SkuCard)
+  const GF_HEART = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1d2539" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
+  const GF_PLUS = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d2539" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+  const GF_STAR = '<svg width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><path fill="#ffb400" d="M12 2.5l2.9 6.2 6.6.7-4.9 4.6 1.4 6.6L12 17.3l-5.9 3.3 1.4-6.6-4.9-4.6 6.6-.7z"/></svg>';
+  const money = (v) => Number(String(v).replace(/,/g, '')).toLocaleString('en-US', { maximumFractionDigits: 2 });
   const card = (p) => `
-    <article class="pcard stroke" data-sku="${p.sku}">
+    <article class="pcard" data-sku="${p.sku}">
       <div class="pcard__media">
-        <div class="pcard__clip">
-          <img class="pcard__photo" src="${CDN}${p.img}.jpg?width=400" alt="" decoding="async" />
-          <button class="pcard__wish" aria-label="Add to wishlist"><img src="${A}94524.svg" alt="" /></button>
-          <button class="pcard__add sk" aria-label="Add to cart"><img src="${A}1d902.svg" alt="" /></button>
-          <span class="pcard__dots"><i></i><i></i><i></i><i></i></span>
-        </div>
+        <img class="pcard__photo" src="${CDN}${p.img}.jpg?width=400" alt="" decoding="async" />
+        <i class="pcard__ov"></i>
+        <button class="pcard__wish" aria-label="Add to wishlist">${GF_HEART}</button>
+        <button class="pcard__add" aria-label="Add to cart">${GF_PLUS}</button>
+        <span class="pcard__dots"><i></i><i></i><i></i><i></i></span>
       </div>
       <div class="pcard__info">
         <p class="pcard__title" data-full="${p.title}">${p.title}</p>
-        <p class="pcard__rate"${p.reviews ? '' : ' style="visibility:hidden"'}><span class="star"><img src="${A}9d075.svg" alt="" /></span><b>${p.rating.toFixed(1)}&nbsp;</b><span>(${count(p.reviews)})</span></p>
-        <p class="pcard__price">&#xE001;${p.price}</p>
-        <p class="pcard__low"${p.low ? '' : ' style="visibility:hidden"'}><img src="${A}aaca9.svg" alt="" />${(p.low || 'Lowest price').replace('Lowest price', 'Lowest Price')}</p>
-        <div class="pcard__offers"${p.offers ? '' : ' style="visibility:hidden"'}><span class="offer">Extra 10%  Off </span><span class="offer">+${p.offers || 1}</span></div>
-        <img class="pcard__badge" src="${A}04813.svg" alt="express Today" />
+        <p class="pcard__rate"${p.reviews ? '' : ' style="visibility:hidden"'}><b>${GF_STAR}${p.rating.toFixed(1)}</b><span>(${count(p.reviews)})</span></p>
+        <p class="pcard__price"><span class="pcard__sale">&#xE001; ${money(p.price)}</span>${p.was ? `<span class="pcard__was">${money(p.was)}</span><span class="pcard__off">${Math.round((1 - Number(String(p.price).replace(/,/g, '')) / Number(String(p.was).replace(/,/g, ''))) * 100)}% OFF</span>` : ''}</p>
+        ${p.offers ? '<span class="pcard__coupon">Extra 10% off with coupon</span>' : ''}
       </div>
+      <div class="pcard__flag"><img src="${A}gf/express-today.svg" alt="express Today" /></div>
     </article>`;
   const slots = [];
   for (let r = 0; r < 4; r++) for (let c = 0; c < 2; c++) {
@@ -1116,14 +1131,13 @@ const PP = (() => {
       const n = t.firstElementChild; n.style.opacity = s.card.style.opacity; s.card.replaceWith(n); s.card = n;
     });
   }
-  // the last two chips are phone filters ("Cases & Covers", "Accessories"); TVs get their own
-  const chipT = chips.slice(3).map((ch) => ch.querySelector('.chip__t'));
-  const CHIP_BASE = chipT.map((t) => [t.textContent, t.style.width]);
-  const CHIP_TEXT = { tv: ['Screen Size', 'Smart TV'] };
+  const CHIP_BRANDS = { phone: ['Apple', 'Samsung', 'HUAWEI', 'Smartphones', 'Google', 'Xiaomi'], fitness: ['Fitbit', 'WHOOP', 'Xiaomi', 'HUAWEI', 'Garmin', 'Amazfit'], tv: ['Samsung', 'LG', 'Sony', 'TCL', 'Hisense', 'Xiaomi'] };
+  const plainT = [...plp.querySelectorAll('.chip--plain .chip__t')];
+  const setChipBrands = (c) => plainT.forEach((t, i) => { t.textContent = (CHIP_BRANDS[c] || CHIP_BRANDS.phone)[i] || ''; });
   function setCategory(c) {   // called while the page is hidden, before it opens
     if (c === cat) return;
     cat = c; LISTS = CATS[c]; listKey = 'all';
-    chipT.forEach((t, i) => { const v = CHIP_TEXT[c]; t.textContent = v ? v[i] : CHIP_BASE[i][0]; t.style.width = v ? '' : CHIP_BASE[i][1]; });
+    setChipBrands(c);
     rTimers.forEach(clearTimeout); rTimers = []; plp.classList.remove('is-reloading');
     fill(LISTS.all);
   }
@@ -1325,7 +1339,7 @@ const PP = (() => {
      · trackpad / wheel swipes move 1:1, then page once the gesture pauses
      · each new page plays a selection haptic; the counter follows the page */
   const pager = (() => {
-    const STEP = 214, VIEW = 343;
+    const STEP = 214, VIEW = 351;   // the rail is the panel's width (aligned to the product grid)
     const max = () => Math.max(0, track.scrollWidth - VIEW);
     const pages = () => { const m = max(), out = []; for (let x = 0; x < m - 24; x += STEP) out.push(x); out.push(m); return out; };
     const SPR = { w: (2 * Math.PI) / 0.34, z: 0.74 };
@@ -1517,7 +1531,7 @@ const PP = (() => {
   const fadeTo = (el, from, to, ms, delay = 0, easing = OUT, extra) =>
     el.animate([{ opacity: from, ...(extra && extra[0]) }, { opacity: to, ...(extra && extra[1]) }], { duration: ms, delay, easing, fill: 'both' });
   const rel = (el) => { const a = el.getBoundingClientRect(), b = bar.getBoundingClientRect(); return { x: a.left - b.left, y: a.top - b.top, w: a.width, h: a.height }; };
-  const onScreen = (i) => { const r = rel(slots[i]); return r.x < 343 && r.x + r.w > 0; };
+  const onScreen = (i) => { const r = rel(slots[i]); return r.x < 351 && r.x + r.w > 0; };
   // coin pop: SwiftUI-style bouncy spring (response 0.42s, ζ 0.52 → ~15% overshoot), once the panel is mostly closed
   const POP = spr(0.42, 0.52), POP_AT = 150;
 
@@ -1738,7 +1752,7 @@ const Haptics = (() => {
    the same iteration (a clean reload back to Home). */
 (() => {
   const nav = document.getElementById('vswitch'); if (!nav) return;
-  const PATHS = { 1: '/', 2: '/v2/', 3: '/v3/', 4: '/v4/', 5: '/v5/' };
+  const PATHS = { 1: '/', 2: '/v2/', 3: '/v3/', 4: '/v4/', 5: '/v5/', 6: '/v6/', 7: '/v7/' };
   const here = document.documentElement.dataset.variant || '1';
   const want = new URLSearchParams(location.search).get('v');
   if (want && PATHS[want] && want !== here) { location.replace(PATHS[want]); return; }

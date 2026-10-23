@@ -1,4 +1,4 @@
-/* Brand Widget PLP — iteration 5 (/v5/) — iteration 4 with PILL selection instead of the roster sliders — iteration 3's TV flow, but the TV brand widget asks first: a three-step picker (budget → screen size → picture), a "Personalizing for you" beat, then each brand's best match and a re-sorted grid (phone and fitness reveal directly, as in 1); asset paths point to ../assets/ */
+/* Brand Widget PLP — iteration 5 (/v5/) — iteration 4 without the picker's footer (a choice moves on by itself; Back + Skip at the top, a shorter panel while it asks): iteration 3's TV flow, but the TV brand widget asks first: a three-step picker (budget → screen size → picture), a "Personalizing for you" beat, then each brand's best match and a re-sorted grid (phone and fitness reveal directly, as in 1); asset paths point to ../assets/ */
 /* Android: phone GPUs pay heavily for animated blur filters and backdrop blurs, so on Android the
    motion keeps its timing and curves but drops the blur (transform + opacity only); html.is-android
    switches the CSS backdrop blurs off. Nothing changes on iPhone or desktop. */
@@ -109,6 +109,7 @@ if (IS_ANDROID) document.documentElement.classList.add('is-android');
 
   /* ── Recommended tabs ────────────────────────────────────────────── */
   const tabs = document.getElementById('tabs');
+  if (!tabs) return;   // the Home is the GitFlow Home now (#nkHome): none of this markup exists
   tabs.addEventListener('click', (e) => {
     const t = e.target.closest('.tab');
     if (!t) return;
@@ -270,6 +271,17 @@ const PP = (() => {
   });
 
   entry.addEventListener('click', openSearch);
+  // the GitFlow Home (#nkHome, React): its search bar opens this page's Search, with the hint it was showing
+  const nk = document.getElementById('nkHome');
+  if (nk) nk.addEventListener('click', (e) => {
+    const bar = e.target.closest && e.target.closest('button[data-hint-prefix]');
+    if (!bar || e.target.closest('[aria-label*="amera" i]')) return;
+    e.preventDefault(); e.stopPropagation();
+    const r = bar.getBoundingClientRect();
+    const word = [...bar.querySelectorAll('[class*="_word_"]')].find((w) => { const b = w.getBoundingClientRect(); return b.top >= r.top - 1 && b.bottom <= r.bottom + 1; });
+    input.placeholder = `${bar.dataset.hintPrefix} ${word ? word.textContent.trim() : '“Apple”'}`;
+    openSearch();
+  }, true);
   entry.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSearch(); }
   });
@@ -928,24 +940,27 @@ const PP = (() => {
   let cat = 'phone', LISTS = PHONE_LISTS;
   // noon's review counts: 995 → "995", 2857 → "2.9K", 33767 → "33.8K"
   const count = (n) => n < 1000 ? String(n) : `${(n / 1000).toFixed(1).replace(/\.0$/, '')}K`;
+  // the GitFlow listing card (its SkuCard)
+  const GF_HEART = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1d2539" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
+  const GF_PLUS = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d2539" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+  const GF_STAR = '<svg width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><path fill="#ffb400" d="M12 2.5l2.9 6.2 6.6.7-4.9 4.6 1.4 6.6L12 17.3l-5.9 3.3 1.4-6.6-4.9-4.6 6.6-.7z"/></svg>';
+  const money = (v) => Number(String(v).replace(/,/g, '')).toLocaleString('en-US', { maximumFractionDigits: 2 });
   const card = (p) => `
-    <article class="pcard stroke" data-sku="${p.sku}">
+    <article class="pcard" data-sku="${p.sku}">
       <div class="pcard__media">
-        <div class="pcard__clip">
-          <img class="pcard__photo" src="${CDN}${p.img}.jpg?width=400" alt="" decoding="async" />
-          <button class="pcard__wish" aria-label="Add to wishlist"><img src="${A}94524.svg" alt="" /></button>
-          <button class="pcard__add sk" aria-label="Add to cart"><img src="${A}1d902.svg" alt="" /></button>
-          <span class="pcard__dots"><i></i><i></i><i></i><i></i></span>
-        </div>
+        <img class="pcard__photo" src="${CDN}${p.img}.jpg?width=400" alt="" decoding="async" />
+        <i class="pcard__ov"></i>
+        <button class="pcard__wish" aria-label="Add to wishlist">${GF_HEART}</button>
+        <button class="pcard__add" aria-label="Add to cart">${GF_PLUS}</button>
+        <span class="pcard__dots"><i></i><i></i><i></i><i></i></span>
       </div>
       <div class="pcard__info">
         <p class="pcard__title" data-full="${p.title}">${p.title}</p>
-        <p class="pcard__rate"${p.reviews ? '' : ' style="visibility:hidden"'}><span class="star"><img src="${A}9d075.svg" alt="" /></span><b>${p.rating.toFixed(1)}&nbsp;</b><span>(${count(p.reviews)})</span></p>
-        <p class="pcard__price">&#xE001;${p.price}</p>
-        <p class="pcard__low"${p.low ? '' : ' style="visibility:hidden"'}><img src="${A}aaca9.svg" alt="" />${(p.low || 'Lowest price').replace('Lowest price', 'Lowest Price')}</p>
-        <div class="pcard__offers"${p.offers ? '' : ' style="visibility:hidden"'}><span class="offer">Extra 10%  Off </span><span class="offer">+${p.offers || 1}</span></div>
-        <img class="pcard__badge" src="${A}04813.svg" alt="express Today" />
+        <p class="pcard__rate"${p.reviews ? '' : ' style="visibility:hidden"'}><b>${GF_STAR}${p.rating.toFixed(1)}</b><span>(${count(p.reviews)})</span></p>
+        <p class="pcard__price"><span class="pcard__sale">&#xE001; ${money(p.price)}</span>${p.was ? `<span class="pcard__was">${money(p.was)}</span><span class="pcard__off">${Math.round((1 - Number(String(p.price).replace(/,/g, '')) / Number(String(p.was).replace(/,/g, ''))) * 100)}% OFF</span>` : ''}</p>
+        ${p.offers ? '<span class="pcard__coupon">Extra 10% off with coupon</span>' : ''}
       </div>
+      <div class="pcard__flag"><img src="${A}gf/express-today.svg" alt="express Today" /></div>
     </article>`;
   const slots = [];
   for (let r = 0; r < 4; r++) for (let c = 0; c < 2; c++) {
@@ -1046,7 +1061,7 @@ const PP = (() => {
      fading 353ms behind each card). A new filter mid-way restarts it.      */
   const R = { OUT_MS: 180, REVEAL_AT: 820 };
   let rTimers = [], listKey = 'all';
-  function swapTo(key, at = R.REVEAL_AT) {
+  function swapTo(key, at = R.REVEAL_AT, quiet = false) {
     if (!open || !LISTS[key] || key === listKey) return;
     listKey = key;
     rTimers.forEach(clearTimeout); rTimers = [];
@@ -1068,7 +1083,7 @@ const PP = (() => {
         s.card.replaceWith(n); s.card = n;
       });
       clampTitles();
-      Haptics.land();   // the new list arriving
+      if (!quiet) Haptics.land();   // the new list arriving (live updates from the TV picker stay quiet)
       const anims = slots.filter((s, k) => k < list.length).flatMap((s, k) => {
         const delay = k * PP.IN_STAGGER;
         const m = PP.moveY(s.card, T.CARD_RISE, 0, { delay }), f = PP.fade(s.card, 0, 1, { curve: 'out', delay });
@@ -1093,21 +1108,32 @@ const PP = (() => {
     return { size: m ? +m[1] : 0, tech, price: +p.price };
   };
   const MAX_FIT = 4 + 3 + 3 + 0.5 + 0.45;
+  // an answer not given yet (the picker is still on an earlier question) scores the same for every TV
   function fit(p, a) {
-    const s = tvSpec(p), [lo, hi] = a.budget, [s0, s1] = a.size;
-    let k = s.price >= lo && s.price <= hi ? 4 : (s.price > hi && s.price <= hi * 1.2) || (s.price < lo && s.price >= lo * 0.8) ? 1.5 : 0;
-    k += s.size >= s0 && s.size <= s1 ? 3 : Math.min(Math.abs(s.size - s0), Math.abs(s.size - s1)) <= 10 ? 1 : 0;
+    const s = tvSpec(p);
+    let k = 2;
+    if (a.budget) { const [lo, hi] = a.budget; k = s.price >= lo && s.price <= hi ? 4 : (s.price > hi && s.price <= hi * 1.2) || (s.price < lo && s.price >= lo * 0.8) ? 1.5 : 0; }
+    if (a.size) { const [s0, s1] = a.size; k += s.size >= s0 && s.size <= s1 ? 3 : Math.min(Math.abs(s.size - s0), Math.abs(s.size - s1)) <= 10 ? 1 : 0; } else k += 1.5;
     k += !a.tech ? 1.5 : s.tech === a.tech ? 3 : 0;
     k += (p.rating || 4) / 10 + Math.log10((p.reviews || 0) + 1) / 10;   // ties go to the better-rated, better-reviewed set
     return { p, spec: s, k, pct: Math.min(99, Math.round(52 + 47 * (k / MAX_FIT))) };
   }
+  /* live: the picker's controls landed on a new answer (detail.live) — the grid re-sorts to the eight
+     best fits for the answers so far, quietly and quickly; nothing reloads when the eight are unchanged.
+     clear: Skip — back to the brand mix. */
   plp.addEventListener('plp:personal', (e) => {
-    const d = e.detail, brands = Object.keys(TV_LISTS).filter((b) => b !== 'all' && b !== 'picks');
+    const d = e.detail;
+    if (cat !== 'tv') return;
+    if (d.clear) { if (TV_LISTS.picks) { delete TV_LISTS.picks; listKey = null; swapTo('all', 420, true); } return; }
+    const brands = Object.keys(TV_LISTS).filter((b) => b !== 'all' && b !== 'picks');
     const scored = brands.map((b) => ({ brand: b, list: TV_LISTS[b].map((p) => fit(p, d.answers)).sort((x, y) => y.k - x.k) }));
     d.total = scored.reduce((n, b) => n + b.list.length, 0);
     d.best = scored.map((b) => ({ brand: b.brand, ...b.list[0] })).sort((x, y) => y.k - x.k);
-    TV_LISTS.picks = scored.flatMap((b) => b.list).sort((x, y) => y.k - x.k).slice(0, 8).map((f) => f.p);
-    swapTo('picks', d.at);
+    const list = scored.flatMap((b) => b.list).sort((x, y) => y.k - x.k).slice(0, 8).map((f) => f.p);
+    const same = TV_LISTS.picks && listKey === 'picks' && TV_LISTS.picks.length === list.length && TV_LISTS.picks.every((p, i) => p === list[i]);
+    TV_LISTS.picks = list;
+    if (same) return;
+    listKey = null; swapTo('picks', d.live ? 420 : d.at, !!d.live);
   });
   /* Pre-warm the swap lists once the page is idle: measure every list's title cuts
      off-screen (one list per idle slot), so the swap does no layout reads in the
@@ -1144,14 +1170,13 @@ const PP = (() => {
       const n = t.firstElementChild; n.style.opacity = s.card.style.opacity; s.card.replaceWith(n); s.card = n;
     });
   }
-  // the last two chips are phone filters ("Cases & Covers", "Accessories"); TVs get their own
-  const chipT = chips.slice(3).map((ch) => ch.querySelector('.chip__t'));
-  const CHIP_BASE = chipT.map((t) => [t.textContent, t.style.width]);
-  const CHIP_TEXT = { tv: ['Screen Size', 'Smart TV'] };
+  const CHIP_BRANDS = { phone: ['Apple', 'Samsung', 'HUAWEI', 'Smartphones', 'Google', 'Xiaomi'], fitness: ['Fitbit', 'WHOOP', 'Xiaomi', 'HUAWEI', 'Garmin', 'Amazfit'], tv: ['Samsung', 'LG', 'Sony', 'TCL', 'Hisense', 'Xiaomi'] };
+  const plainT = [...plp.querySelectorAll('.chip--plain .chip__t')];
+  const setChipBrands = (c) => plainT.forEach((t, i) => { t.textContent = (CHIP_BRANDS[c] || CHIP_BRANDS.phone)[i] || ''; });
   function setCategory(c) {   // called while the page is hidden, before it opens
     if (c === cat) return;
     cat = c; LISTS = CATS[c]; listKey = 'all';
-    chipT.forEach((t, i) => { const v = CHIP_TEXT[c]; t.textContent = v ? v[i] : CHIP_BASE[i][0]; t.style.width = v ? '' : CHIP_BASE[i][1]; });
+    setChipBrands(c);
     rTimers.forEach(clearTimeout); rTimers = []; plp.classList.remove('is-reloading');
     fill(LISTS.all);
   }
@@ -1354,7 +1379,7 @@ const PP = (() => {
      · trackpad / wheel swipes move 1:1, then page once the gesture pauses
      · each new page plays a selection haptic; the counter follows the page */
   const pager = (() => {
-    const STEP = 214, VIEW = 343;
+    const STEP = 214, VIEW = 351;   // the rail is the panel's width (aligned to the product grid)
     const max = () => Math.max(0, track.scrollWidth - VIEW);
     const pages = () => { const m = max(), out = []; for (let x = 0; x < m - 24; x += STEP) out.push(x); out.push(m); return out; };
     const SPR = { w: (2 * Math.PI) / 0.34, z: 0.74 };
@@ -1474,6 +1499,15 @@ const PP = (() => {
 
   /* ── reveal ──────────────────────────────────────────────────────────────── */
   const H = 459, WAIT = 0;   // box: 2 + 450 panel + 9 gap − the grid's own 2px top padding
+  /* iteration 5: no footer and one line of question (the hint is only read out) while the TV picker asks,
+     so its panel is 352 (stage 50 + 284 page + 18), the box 361; when the picks (or Skip's brand rail) come in it grows to 450 / 459 on the morph spring, the grid
+     riding down with it */
+  const ASK_BAR = 352, ASK_H = 361;
+  function growPanel() {
+    if (parseFloat(bar.style.height) !== ASK_BAR) return;
+    pushGrid(ASK_H, H, (el, a, b, fmt) => springAnim(el, a, b, fmt, MORPH));
+    PP.commit(bar, [springAnim(bar, ASK_BAR, BAR, (v) => ({ height: `${(+v).toFixed(2)}px` }), MORPH)], { height: '' });
+  }
   const REVEAL = { CARD_RISE: 20, CARD_SCALE: 0.9, HEAD_RISE: 10, CARD_FADE_AT: 17, HEAD_AT: 33, HEAD_FADE_AT: 50, FADE_MS: 300 };
   const REVEAL_FADE = 'linear(0, 0.1202, 0.2309, 0.3305, 0.4218, 0.5033, 0.5773, 0.6428, 0.7018, 0.7532, 0.7988, 0.838, 0.8722, 0.9008, 0.9252, 0.945, 0.9612, 0.9737, 0.9834, 0.9902, 0.995, 0.9978, 0.9994, 0.9999, 1)';
   const revealFade = (el, delay = 0) => el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: REVEAL.FADE_MS, delay, easing: REVEAL_FADE, fill: 'both' });
@@ -1493,25 +1527,35 @@ const PP = (() => {
   let timers = [], running = false;
   const later = (ms, fn) => timers.push(setTimeout(fn, ms));
 
-  /* ── TV searches ask before they show (iteration 5: pills) ─────────────────
-     The panel opens on a three-step picker instead of the rail: the picker's top (eyebrow, step
-     count, step pills), then one question at a time (budget → screen size → picture). Each is
-     answered by tapping one of four PILLS (a 2×2 grid; a dark indicator springs from the chosen pill
-     to the tapped one), and the visual above answers the tap: budget — that range's TV slides in;
-     size — the one TV springs to the size; picture — the new picture wipes across the screen. Next
-     pushes the next question in (Back mirrors it, keeping the answer); "Show my picks" →
-     "Personalizing for you" → the rail with each brand's best match. Skip shows the brand rail. */
+  /* ── TV searches ask before they show (iteration 4) ─────────────────────────
+     The panel opens on a three-step picker instead of the rail: a segmented
+     progress bar, then one question at a time (budget → screen size →
+     picture), each answered on the Product Upscale ROSTER SLIDER (noon-home's
+     "Meet the iPhone lineup"): the four answers stand in a row as TVs with a
+     label and hint; the selection (pink circle, pink indicator line + dot,
+     over a tick ruler) stays fixed in the centre and the row and ruler slide
+     under it. Drag follows 1:1 (rubber band past either end); release snaps
+     ONE answer in the flick direction on a soft spring carrying the release
+     velocity; tap an answer to bring it in. Unselected answers sit at 90%,
+     easing to full size in the slot; while it moves the ruler swells in a
+     wave around the indicator with a pink spill, the dot drops out and the
+     circle eases to 94%; each ruler tick crossing the line clicks (haptic +
+     a soft click), a new answer landing snaps. Next fills the step's progress
+     segment and the next question slides in from the right; Back mirrors it,
+     keeping the answer. "Show my picks" → "Personalizing for you" (text over
+     soft drifting glows) while the grid shimmers, then the rail rises in with
+     each brand's best match. Skip (first step) shows the brand rail as in 3. */
   // opts: [label, value, hint, [photo, size]] — each answer is a real noon TV, cut out (assets/tv/*.webp), at a relative size
   const QUESTIONS = [
-    { key: 'budget', label: 'Budget',  q: 'What’s your budget?', sub: 'Pick a price range', def: 1,
+    { key: 'budget', label: 'Budget',  q: 'What’s your budget?', sub: 'Tap one to choose, or swipe to browse', def: 1,
       opts: [['Under  1,500', [0, 1500], 'Great value', ['crystal', 0.86]], [' 1,500 – 3,000', [1500, 3000], 'Most popular', ['q8f', 0.9]],
              [' 3,000 – 5,000', [3000, 5000], 'Premium', ['bravia', 0.95]], [' 5,000+', [5000, 1e9], 'Top of the range', ['neoqled', 1]]] },
     // one TV that morphs to size as the ruler moves (single), instead of a row of answers
-    { key: 'size',   label: 'Screen',  q: 'Which screen size?', sub: 'Measured diagonally', def: 1, single: 'qled65',
+    { key: 'size',   label: 'Screen',  q: 'Which screen size?', sub: 'Swipe to resize, tap the TV to choose', def: 1, single: 'qled65',
       opts: [['Up to 50"', [0, 50], 'Bedrooms & kitchens', 0.56], ['55"', [51, 60], 'Most popular', 0.68], ['65"', [61, 70], 'Living rooms', 0.84], ['75" & up', [71, 200], 'Home cinema', 1]] },
     // one TV whose picture wipes from one screen type to the next as the ruler moves (single + screen):
     // [screen image (assets/tv/screen-*.webp), ambient glow colour, the signature pulse when it lands]
-    { key: 'tech',   label: 'Picture', q: 'Any picture preference?', sub: 'Pick the screen type you like', def: 0, single: 'qled65', screen: true,
+    { key: 'tech',   label: 'Picture', q: 'Any picture preference?', sub: 'Swipe through, tap the TV to choose', def: 0, single: 'qled65', screen: true,
       opts: [['No preference', null, 'Show me everything', ['any', 'rgba(242,176,64,.58)', '']], ['QLED', 'QLED', 'Bright, vivid colour', ['qled', 'rgba(118,88,255,.55)', 'saturate(1.28)']],
              ['Mini LED', 'Mini LED', 'Brightest HDR', ['mini', 'rgba(40,200,205,.55)', 'brightness(1.14)']], ['OLED', 'OLED', 'Perfect blacks', ['oled', 'rgba(255,90,140,.5)', 'contrast(1.18) saturate(1.06)']]] },
   ];
@@ -1521,21 +1565,19 @@ const PP = (() => {
   const SL_W = 315, THUMB = 28, TRAVEL = SL_W - THUMB;   // the thumb's centre runs 14 → 301
   const ask = document.createElement('div');
   ask.className = 'brw__ask';
-  /* the picker's own top (the widget's header is hidden while it asks): an eyebrow, the step count and
-     three step pills — done = dark dot, current = a wider dark pill, to come = grey dot (morphing on change) */
-  ask.innerHTML = `<div class="qz__top"><span class="qz__eyebrow">Find your TV</span>
-      <span class="qz__prog"><span class="qz__count">1 of ${QUESTIONS.length}</span><span class="qz__steps" aria-hidden="true">${QUESTIONS.map(() => '<i></i>').join('')}</span></span></div>
-    <div class="qz__stage"></div>
-    <div class="qz__foot">
-      <span class="qz__left">
-        <button class="qz__skip" type="button">Skip</button>
-        <button class="qz__back" type="button"><img src="${B}chevron.svg" width="16" height="16" alt="" />Back</button>
-      </span>
-      <button class="qz__next" type="button">Next</button>
-    </div>`;
+  /* the picker's own top (the widget's header is hidden while it asks) — no footer (iteration 5): choosing
+     an answer moves on by itself. One row: the eyebrow on the left, the three step pills in the centre
+     (done = dark dot, current = a wider dark pill, to come = grey dot), and on the right Back (from the
+     second question, fading in beside it) and Skip (every question). The step count is for screen readers. */
+  ask.innerHTML = `<div class="qz__top">
+      <span class="qz__eyebrow">Find your TV</span>
+      <span class="qz__steps" aria-hidden="true">${QUESTIONS.map(() => '<i></i>').join('')}</span>
+      <span class="qz__acts"><button class="qz__back" type="button" disabled>Back</button><button class="qz__skip" type="button">Skip</button></span>
+      <span class="qz__count">1 of ${QUESTIONS.length}</span></div>
+    <div class="qz__stage"></div>`;
   bar.appendChild(ask);
-  const qBar = ask.querySelector('.qz__top'), qCount = ask.querySelector('.qz__count'), stage = ask.querySelector('.qz__stage'), foot = ask.querySelector('.qz__foot');
-  const qBack = ask.querySelector('.qz__back'), qSkip = ask.querySelector('.qz__skip'), qNext = ask.querySelector('.qz__next');
+  const qBar = ask.querySelector('.qz__top'), qCount = ask.querySelector('.qz__count'), stage = ask.querySelector('.qz__stage');
+  const qBack = ask.querySelector('.qz__back'), qSkip = ask.querySelector('.qz__skip');
   const fills = [...qBar.querySelectorAll('.qz__steps i')];
   const TV_BRAND = Object.fromEntries(TV_CARDS.map((c) => [c.brand, c]));
   let answers = {}, step = 0, page = null, busy = false, personal = false, slider = null;
@@ -1543,117 +1585,294 @@ const PP = (() => {
   const fill = (i, on) => fills[i].classList.toggle('is-done', on);
   const fadeEl = (el, to, ms = 200) => PP.commit(el, [el.animate([{ opacity: +getComputedStyle(el).opacity }, { opacity: to }], { duration: ms, easing: OUT, fill: 'both' })], { opacity: to });
 
+  /* Sfx — the roster's clicks, synthesised (no audio files): a crisp ~14ms tick as a ruler tick crosses
+     the line, a fuller 22ms snap with a short "tock" when an answer lands (noon-home's Sfx, as measured) */
+  const Sfx = (() => {
+    let ctx = null;
+    const ensure = () => {
+      if (!ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; ctx = new AC(); }
+      if (ctx.state === 'suspended') ctx.resume();
+      return ctx;
+    };
+    function click(freq, q, ms, gain, body = 0) {
+      const c = ensure(); if (!c || c.state !== 'running') return;
+      const t = c.currentTime, len = Math.max(1, Math.floor(c.sampleRate * ms / 1000));
+      const buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (len * 0.22));
+      const src = c.createBufferSource(); src.buffer = buf;
+      const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = q;
+      const g = c.createGain(); g.gain.value = gain;
+      src.connect(bp).connect(g).connect(c.destination); src.start(t);
+      if (body) {
+        const o = c.createOscillator(), og = c.createGain();
+        o.frequency.setValueAtTime(freq * 0.62, t); o.frequency.exponentialRampToValueAtTime(freq * 0.45, t + 0.03);
+        og.gain.setValueAtTime(body, t); og.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
+        o.connect(og).connect(c.destination); o.start(t); o.stop(t + 0.04);
+      }
+    }
+    return { unlock: ensure, tick: () => click(2900, 4, 14, 0.07), snap: () => click(2400, 3, 22, 0.12, 0.05) };
+  })();
   const TV_W = 156, TV_BIG = 196, TV_SCR = 190;   // TV_SCR: the picture question's TV
   // the screen inside assets/tv/qled65.webp (measured from the cut-out: 1–2px bezel, stand below)
   const SCREEN = { l: 0.8, t: 1.9, w: 98.4, h: 89.4 };   // the largest answer's width in the slot; the size question's TV at 75"+
   const tvImg = ([file, k]) => `<img class="rsi__img" src="../assets/tv/${file}.webp" width="${Math.round(TV_W * k)}" height="${Math.round(TV_W * k * 0.615)}" alt="" decoding="async" />`;
 
-  /* Options (one set per question page): four answer CARDS in a 2×2 grid — white, label + hint left-
-     aligned, a radio ring top-right. The chosen card takes a crisp dark outline and its radio fills
-     dark with a white check popping in (a short overshoot); the label firms up. Each card is its own
-     button, so a press dips the whole card (scale .98) — nothing slides under the text, nothing can
-     land mid-way. The visual above follows the tap:
-       · photos (budget): the answer's TV cut-out slides in 28px from the side it lies on as the last
-         one slides out and fades — one spring — on a neutral pool of light
-       · size: one TV springs to the answer's size (scale about its feet, a touch of settle)
-       · screen (picture): the new picture wipes across in 560ms (feathered mask, drift, light band),
-         the ambient light crossfades, then that type's signature pulse
-     Every transition starts from where things are now (current transform / opacity), so quick
-     repeat taps hand over smoothly instead of restarting. */
-  const SWAP = spr(0.5, 0.92), GROW = spr(0.55, 0.78);
-  const CHK = '<svg width="18" height="18" viewBox="0 0 18 18"><path d="M5.3 9.2l2.4 2.4 5-5.2" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  const WIPE_MS = 560, inOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
-  function makePills(pg, Q, k0) {
-    const pl = pg.querySelector('.pl'), btns = [...pl.querySelectorAll('.pl__b')];
-    const vis = pg.querySelector('.pv');
-    const mode = Q.screen ? 'screen' : Q.single ? 'size' : 'photos';
-    const phs = [...vis.querySelectorAll('.pv__ph')], tv = vis.querySelector('.pv__tv');
-    const layers = [...vis.querySelectorAll('.scr__l')], pics = layers.map((L) => L.firstElementChild), seam = vis.querySelector('.scr__seam');
-    const ambs = [...vis.querySelectorAll('.pv__amb i')];
-    const SW = TV_SCR * SCREEN.w / 100, SOFT = SW * 0.1;
-    let k = -1, raf = 0, wiping = null;
-    // budget: the TVs slide past each other in the direction of the tap — each from where it is now
-    const now = (el) => { const cs = getComputedStyle(el), m = new DOMMatrix(cs.transform); return { o: +cs.opacity, x: m.m41, s: m.a }; };
-    function photos(from, to, animate) {
-      const inEl = phs[to];
-      if (!animate || from < 0) {
-        phs.forEach((el, j) => { el.getAnimations().forEach((a) => a.cancel()); el.style.opacity = j === to ? 1 : 0; el.style.transform = ''; });
-        return;
-      }
-      const dir = Math.sign(to - from), DX = 28;
-      phs.forEach((el, j) => {
-        if (j === to) return;
-        const c = now(el); if (c.o < 0.01) { el.getAnimations().forEach((a) => a.cancel()); el.style.opacity = 0; el.style.transform = ''; return; }
-        el.getAnimations().forEach((a) => a.cancel());   // anything still showing leaves toward the far side, from its current place
-        PP.commit(el, [springAnim(el, 0, 1, (q) => ({ transform: `translate3d(${(c.x + (-dir * DX - c.x) * q).toFixed(2)}px,0,0) scale(${(c.s + (0.96 - c.s) * q).toFixed(4)})` }), SWAP),
-          el.animate([{ opacity: c.o }, { opacity: 0 }], { duration: 200, easing: 'cubic-bezier(.4,0,.6,1)', fill: 'both' })], { opacity: 0, transform: '' });
+  /* The roster (one per question page). Rail x runs 0 (first answer in the slot) → X_MIN (last).
+     Geometry, roster coordinates (351 wide, the panel's full width): the slot / the indicator in
+     the CENTRE (x 175), answers 136 apart either side (17 ruler ticks of 8px, a darker mark under each).
+     The answer in the slot is full size on a soft peach glow; the others shrink to 70% and fade to
+     42% as they leave it (continuous with position) and peek in from the panel edges. One readout
+     under the slot names the answer and rolls over (out up, in from below) when it changes. */
+  const RS = { PITCH: 136, TICK: 8, IND: 175, SHRINK: 0.3, FADE: 0.58, RUBBER: 150, W: 11, Z: 0.96 };
+  const WAVE = { A: 0.43, SIGMA: 17.5, ATTACK: 0.02, HOLD: 50, DECAY: 100, V_MIN: 20 };
+  const TINT = { MAX: 0.92, SIGMA: 12, TRAIL: 14, LEAD: 3, V_FULL: 900 };
+  function springFn(w, z, x0, v0) {
+    const wd = w * Math.sqrt(1 - z * z), e = (t) => Math.exp(-z * w * t);
+    return {
+      d: (t) => e(t) * (x0 * Math.cos(wd * t) + ((v0 + z * w * x0) / wd) * Math.sin(wd * t)),
+      v: (t) => e(t) * (v0 * Math.cos(wd * t) - ((z * w * v0 + w * w * x0) / wd) * Math.sin(wd * t)),
+    };
+  }
+  function makeRoster(pg, Q, k0, onPick) {
+    const rs = pg.querySelector('.rs'), items = [...rs.querySelectorAll('.rsi')], strip = rs.querySelector('.rs__ticks');
+    const tickEls = [...strip.children], ind = rs.querySelector('.rs__ind'), dot = rs.querySelector('.rs__dot'), selC = rs.querySelector('.rs__sel');
+    const rd = rs.querySelector('.rs__read');
+    /* the readout: one line per answer, riding the rail at half its speed and fading with distance from
+       the slot (gone by 0.7 of a step) — the names slide and crossfade with the finger, never swap */
+    rd.innerHTML = Q.opts.map(([label, , hint]) => `<span class="rs__line"><b>${label}</b><span>${hint}</span></span>`).join('');
+    const lines = [...rd.children];
+    function paintRead() {
+      lines.forEach((l, k) => {
+        const d = k * RS.PITCH + x, t = Math.min(1, Math.abs(d) / (RS.PITCH * 0.7)), o = 1 - t * t * (3 - 2 * t);
+        l.style.transform = `translate3d(${(d * 0.5).toFixed(2)}px,0,0)`;
+        l.style.opacity = o.toFixed(3);
+        l.style.visibility = o < 0.002 ? 'hidden' : '';
       });
-      const c = now(inEl), x0 = c.o > 0.01 ? c.x : dir * DX, s0 = c.o > 0.01 ? c.s : 0.96;
-      inEl.getAnimations().forEach((a) => a.cancel());
-      PP.commit(inEl, [springAnim(inEl, 0, 1, (q) => ({ transform: `translate3d(${(x0 * (1 - q)).toFixed(2)}px,0,0) scale(${(s0 + (1 - s0) * q).toFixed(4)})` }), SWAP),
-        inEl.animate([{ opacity: c.o }, { opacity: 1 }], { duration: 300, delay: c.o > 0.01 ? 0 : 40, easing: 'cubic-bezier(.25,.1,.25,1)', fill: 'both' })], { opacity: 1, transform: '' });
     }
-    // size: one TV springs to the answer's size
-    function grow(to, animate) {
-      const k1 = Q.opts[to][3], end = `scale(${k1})`;
-      if (!animate || PP.reduce.matches) { tv.getAnimations().forEach((a) => a.cancel()); tv.style.transform = end; return; }
-      const k0_ = new DOMMatrix(getComputedStyle(tv).transform).a;
-      tv.getAnimations().forEach((a) => a.cancel());
-      PP.commit(tv, [springAnim(tv, k0_, k1, (v) => ({ transform: `scale(${(+v).toFixed(4)})` }), GROW)], { transform: end });
-    }
-    // picture: the feathered wipe (as in iteration 4's slider, driven by time instead of the finger)
-    function paintWipe(a, b, f) {
-      const edge = (1 - f) * (SW + 2 * SOFT) - SOFT;
-      layers.forEach((L, j) => {
-        const wipe = j === b && f > 0 && f < 1;
-        L.style.visibility = j === a || (j === b && f > 0) ? '' : 'hidden';
+    const N = Q.opts.length, X_MIN = -(N - 1) * RS.PITCH, single = !!Q.single;
+    /* single (screen size): one TV, its scale a continuous function of the rail position — linear between
+       the answers' sizes, a little past them on the rubber band — so it grows and shrinks with the finger
+       and lands exactly on the size the snap spring settles on; the glow behind it scales with it */
+    const KS = Q.opts.map((o) => o[3]);
+    /* single + screen (picture type): the TV holds still; its picture is one layer per answer, and the
+       next layer wipes in from the right with the rail (a clip-path inset following the finger), a light
+       seam riding the wipe edge; the ambient glow behind the set crossfades between the answers'
+       colours; when it lands, that screen type plays its signature pulse (QLED colour, Mini LED
+       brightness, OLED contrast) */
+    const layers = Q.screen ? [...rs.querySelectorAll('.scr__l')] : [], seam = rs.querySelector('.scr__seam');
+    const pics = layers.map((L) => L.firstElementChild);
+    const SW = TV_SCR * SCREEN.w / 100, SOFT = SW * 0.1;   // screen width; half the feathered edge (the mask's 30→36.7% of 3W)
+    const ambs = Q.screen ? [...rs.querySelectorAll('.rs__amb i')] : [];
+    function paintScreen() {
+      const u = Math.max(0, Math.min(N - 1, -x / RS.PITCH)), i = Math.min(N - 2, Math.floor(u)), f = u - i;
+      /* a feathered wipe: the incoming picture's mask (a soft 0.2W edge) slides from beyond the right edge to
+         beyond the left as f goes 0 → 1, so it starts and ends fully clean; the pictures drift with it (the
+         incoming one in from 18% to the right, the outgoing out 12% to the left) as if passing behind glass,
+         and a faint band of light rides the edge */
+      const edge = (1 - f) * (SW + 2 * SOFT) - SOFT;   // the soft edge's centre, px from the screen's left
+      layers.forEach((L, k) => {
+        const on = k === i || k === i + 1, wipe = k === i + 1 && f > 0;
+        L.style.visibility = on && (k === i || f > 0) ? '' : 'hidden';
         L.classList.toggle('is-wipe', wipe);
         if (wipe) { const mp = `${(edge - SW).toFixed(2)}px 0`; L.style.webkitMaskPosition = mp; L.style.maskPosition = mp; }
-        const drift = j === b && f < 1 ? (1 - f) * SW * 0.18 : j === a && f > 0 ? -f * SW * 0.12 : 0;
-        pics[j].style.transform = drift ? `translate3d(${drift.toFixed(2)}px,0,0)` : '';
+        const drift = k === i + 1 ? (1 - f) * SW * 0.18 : k === i ? -f * SW * 0.12 : 0;
+        pics[k].style.transform = drift ? `translate3d(${drift.toFixed(2)}px,0,0)` : '';
       });
       seam.style.transform = `translate3d(${(edge - 22).toFixed(2)}px,0,0)`;
       seam.style.opacity = (Math.sin(Math.PI * f) * 0.7).toFixed(3);
+      ambs.forEach((g, k) => { const w = Math.max(0, 1 - Math.abs(u - k)); g.style.opacity = (w * w * (3 - 2 * w)).toFixed(3); });
+      const over = x > 0 ? x : x < X_MIN ? x - X_MIN : 0;   // on the rubber band the set leans a touch with the pull
+      items[0].style.transform = over ? `translate3d(${(over * 0.18).toFixed(2)}px,0,0)` : '';
     }
-    function pulse(j) {
-      const fx = Q.opts[j][3][2], L = layers[j];
+    function pulse() {
+      const fx = Q.opts[sel][3][2], L = layers[sel];
       if (!fx || !L || IS_ANDROID || PP.reduce.matches) return;
+      // a gentle swell and release (~0.9s), the glow breathing with it
       PP.commit(L, [L.animate([{ filter: 'none' }, { filter: fx, offset: 0.4 }, { filter: 'none' }], { duration: 900, easing: 'cubic-bezier(.37,0,.63,1)' })], {});
+      const g = ambs[sel];
+      if (g) PP.commit(g, [g.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.08)', offset: 0.4 }, { transform: 'scale(1)' }], { duration: 900, easing: 'cubic-bezier(.37,0,.63,1)' })], {});
     }
-    function wipe(from, to, animate) {
-      ambs.forEach((g, j) => g.classList.toggle('on', j === to));
-      cancelAnimationFrame(raf);
-      if (wiping) { paintWipe(wiping.a, wiping.b, 1); from = wiping.b; wiping = null; }
-      if (!animate || from < 0 || from === to || PP.reduce.matches) { paintWipe(to, -1, 0); return; }
-      wiping = { a: from, b: to }; let t0 = 0;
-      const stepW = (now) => {
-        if (!t0) t0 = now;
-        const u = Math.min(1, (now - t0) / WIPE_MS);
-        paintWipe(from, to, inOut(u));
-        if (u < 1) raf = requestAnimationFrame(stepW);
-        else { wiping = null; paintWipe(to, -1, 0); pulse(to); }
-      };
-      raf = requestAnimationFrame(stepW);
+    const sizeAt = (u) => {
+      if (u <= 0) return KS[0] + (KS[1] - KS[0]) * Math.max(-0.35, u);
+      if (u >= N - 1) return KS[N - 1] + (KS[N - 1] - KS[N - 2]) * Math.min(0.35, u - (N - 1));
+      const i = Math.floor(u), f = u - i, P = (k) => KS[Math.max(0, Math.min(N - 1, k))];
+      const p0 = P(i - 1), p1 = P(i), p2 = P(i + 1), p3 = P(i + 2);   // Catmull-Rom: same speed into and out of each stop
+      return 0.5 * (2 * p1 + (p2 - p0) * f + (2 * p0 - 5 * p1 + 4 * p2 - p3) * f * f + (3 * p1 - p0 - 3 * p2 + p3) * f * f * f);
+    };
+    const rubber = (d) => (1 - 1 / ((d * 0.55) / RS.RUBBER + 1)) * RS.RUBBER;
+    const bound = (raw) => (raw > 0 ? rubber(raw) : raw < X_MIN ? X_MIN - rubber(X_MIN - raw) : raw);
+    const clampK = (k) => Math.max(0, Math.min(N - 1, k));
+    let x = -k0 * RS.PITCH, v = 0, sel = -1, anim = null, drag = null, raf = 0;
+    let lastTick = Math.round(-x / RS.TICK), lastTickAt = 0, lastHapAt = 0, pastEdge = false, hidden = -1;
+    function select(i, sound) {
+      if (i === sel) return;
+      sel = i;
+      if (!single) {
+        items.forEach((el, k) => { el.classList.toggle('is-sel', k === i); el.setAttribute('aria-selected', k === i); });
+        rs.setAttribute('aria-activedescendant', items[i].id);
+      } else rs.setAttribute('aria-valuetext', Q.opts[i][0]);
+      lines.forEach((l, k) => l.classList.toggle('is-cur', k === i));
+      if (sound) { Sfx.snap(); Haptics.snap(); lastTickAt = performance.now(); scheduleLive(); }
     }
-    function select(j, animate) {
-      if (j === k) return;
-      const from = k; k = j;
-      btns.forEach((b, i) => { b.classList.toggle('is-on', i === j); b.setAttribute('aria-checked', i === j); });
-      // the radio's check pops in on the newly chosen card (CSS draws the rest)
-      if (animate && !PP.reduce.matches) {
-        const r = btns[j].querySelector('.pl__r');
-        PP.commit(r, [r.animate([{ transform: 'scale(.6)' }, { transform: 'scale(1.12)', offset: 0.55 }, { transform: 'scale(1)' }], { duration: 320, easing: 'cubic-bezier(.3,0,.2,1)' })], {});
+    function render(sound = true) {
+      paintRead();
+      if (Q.screen) paintScreen();
+      else if (single) {
+        const k = sizeAt(-x / RS.PITCH);
+        items[0].style.transform = `scale(${k.toFixed(4)})`;
+        selC.style.transform = `scale(${(0.55 + 0.45 * k).toFixed(4)})`;
+      } else items.forEach((el, i) => {
+        const p = i * RS.PITCH + x, t = Math.min(1, Math.abs(p) / RS.PITCH), e = t * t * (3 - 2 * t);
+        el.style.transform = `translate3d(${x.toFixed(2)}px,0,0) scale(${(1 - RS.SHRINK * e).toFixed(4)})`;
+        el.style.opacity = (1 - RS.FADE * e).toFixed(3);
+      });
+      strip.style.transform = `translate3d(${x.toFixed(2)}px,0,0)`;
+      // the pink line stands in for the tick under it: hide that one
+      const under = Math.round(-x / RS.TICK);
+      if (under !== hidden) { if (tickEls[hidden]) tickEls[hidden].style.visibility = ''; if (tickEls[under]) tickEls[under].style.visibility = 'hidden'; hidden = under; }
+      const ti = Math.round(-x / RS.TICK), slot = clampK(Math.round(-x / RS.PITCH));
+      if (ti !== lastTick) {
+        lastTick = ti;
+        const now = performance.now();
+        if (sound && now - lastTickAt >= 100) { lastTickAt = now; Sfx.tick(); }
+        if (sound && slot === sel && x <= 0.5 && x >= X_MIN - 0.5 && now - lastHapAt >= 40) { lastHapAt = now; Haptics.gesture('tick'); }
       }
-      if (mode === 'photos') photos(from, j, animate); else if (mode === 'size') grow(j, animate); else wipe(from, j, animate);
+      const past = x > 0.5 || x < X_MIN - 0.5;
+      if (past !== pastEdge) { pastEdge = past; if (past && sound) Haptics.gesture('edge'); }
+      select(slot, sound);
+      waveKick();
     }
-    pl.addEventListener('click', (e) => { const b = e.target.closest('.pl__b'); if (b) select(+b.dataset.k, true); });
-    // arrow keys move the choice (2×2: ←/→ within a row, ↑/↓ between rows)
-    pl.addEventListener('keydown', (e) => {
-      const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -2, ArrowDown: 2 }[e.key]; if (!step) return;
-      e.preventDefault(); const j = Math.max(0, Math.min(btns.length - 1, k + step)); select(j, true); btns[j].focus();
+    /* ruler wave + pink spill (noon-home, measured): while moving, ticks near the line grow on a bell
+       curve (×1.43 beside it, σ 17.5px) and take the line's pink, smeared to the trailing side */
+    let E = 0, wx = x, wt = 0, lastActive = -1e9, relFrom = null, waveRaf = 0, armed = false, vS = 0;
+    const swelled = new Set();
+    function waveApply() {
+      const reach = WAVE.SIGMA * 3, k = Math.min(1, Math.abs(vS) / TINT.V_FULL);
+      const sTrail = TINT.SIGMA + TINT.TRAIL * k, sLead = TINT.SIGMA - TINT.LEAD * k;
+      tickEls.forEach((el, i) => {
+        const d = i * RS.TICK + x;
+        if (E > 0 && Math.abs(d) < reach) {
+          el.style.transform = `scaleY(${(1 + WAVE.A * E * Math.exp(-((d / WAVE.SIGMA) ** 2))).toFixed(4)})`;
+          el.style.setProperty('--tint', (TINT.MAX * E * Math.exp(-((d / (d * vS > 0 ? sTrail : sLead)) ** 2))).toFixed(3));
+          swelled.add(i);
+        } else if (swelled.has(i)) { el.style.transform = ''; el.style.removeProperty('--tint'); swelled.delete(i); }
+      });
+      ind.style.transform = E > 0 ? `scaleY(${(1 + WAVE.A * E).toFixed(4)})` : '';
+    }
+    function waveKick() {
+      if (PP.reduce.matches || waveRaf) return;
+      if (!armed && E === 0) { wx = x; return; }
+      wt = 0; waveRaf = requestAnimationFrame(waveStep);
+    }
+    function waveStep(now) {
+      const dt = wt ? Math.min(0.05, (now - wt) / 1000) : 0;
+      const speed = dt ? Math.abs(x - wx) / dt : (x !== wx ? Infinity : 0);
+      if (dt) vS += ((x - wx) / dt - vS) * (1 - Math.exp(-dt / 0.06));
+      wx = x; wt = now;
+      if (armed && speed > WAVE.V_MIN) { lastActive = now; relFrom = null; E += (1 - E) * (1 - Math.exp(-(dt || 1 / 60) / WAVE.ATTACK)); }
+      else if (now - lastActive > WAVE.HOLD) {
+        if (!relFrom) { relFrom = { t: now, E }; armed = false; }
+        E = relFrom.E * (1 - Math.min(1, (now - relFrom.t) / WAVE.DECAY)) ** 1.6;
+      }
+      waveApply();
+      if (E > 0.0005 || now - lastActive <= WAVE.HOLD) waveRaf = requestAnimationFrame(waveStep);
+      else { E = 0; relFrom = null; waveApply(); waveRaf = 0; settleUi(); }
+    }
+    /* the pink dot drops out the moment the row moves and pops back once everything is still;
+       the circle eases to 94% while moving and springs back as an answer lands */
+    let moving = false, dotT = 0;
+    /* choosing: a tap on an answer (or on the TV) or a swipe that lands is a choice — once the rail
+       comes to rest it is handed on (onPick('tap' | 'swipe')); a new touch takes it back (onPick(null)) */
+    let pending = null;
+    function moved() {
+      armed = true; clearTimeout(dotT);
+      if (moving) return; moving = true;
+      PP.commit(dot, [dot.animate([{ transform: getComputedStyle(dot).transform === 'none' ? 'scale(1)' : getComputedStyle(dot).transform }, { transform: 'scale(0)' }], { duration: 160, easing: PP.EASE_IO, fill: 'forwards' })], { transform: 'scale(0)' });
+      if (!single) PP.commit(selC, [selC.animate([{ transform: 'scale(1)' }, { transform: 'scale(.94)' }], { duration: 240, easing: PP.EASE_IO, fill: 'forwards' })], { transform: 'scale(.94)' });
+    }
+    function settleUi() {
+      if (!moving || drag || waveRaf || anim) return;
+      clearTimeout(dotT);
+      dotT = setTimeout(() => {
+        if (drag || waveRaf || anim || !moving) return;
+        moving = false;
+        PP.commit(dot, [PP.spring(dot, 0, 1, (k) => ({ transform: `scale(${Math.max(0, +k).toFixed(3)})` }))], { transform: '' });
+        if (!single) PP.commit(selC, [springAnim(selC, 0.94, 1, (k) => ({ transform: `scale(${(+k).toFixed(4)})` }), { w: 13, z: 0.8 })], { transform: '' });
+        if (Q.screen) pulse();
+      }, 90);
+    }
+    function goToX(target, v0 = v) {
+      if (Math.abs(target - x) > 0.05) moved();
+      const running = !!anim, x0 = x - target;
+      if (v0 * -x0 > 0) v0 = Math.sign(v0) * Math.min(Math.abs(v0), RS.W * Math.abs(x0) * 1.2);
+      else v0 = Math.sign(v0) * Math.min(Math.abs(v0), 600);
+      anim = { target, t0: performance.now(), f: springFn(RS.W, RS.Z, x0, v0) };
+      if (!running) raf = requestAnimationFrame(stepF);
+    }
+    function stepF(now) {
+      if (!anim) return;
+      const t = (now - anim.t0) / 1000, d = anim.f.d(t);
+      v = anim.f.v(t); x = anim.target + d;
+      if (Math.abs(d) < 0.05 && Math.abs(v) < 5) { x = anim.target; v = 0; anim = null; render(); settleUi(); if (pending) { const k = pending; pending = null; onPick(k); } return; }
+      render(); raf = requestAnimationFrame(stepF);
+    }
+    function release(vel) {
+      if (x > 0) return goToX(0, vel);
+      if (x < X_MIN) return goToX(X_MIN, vel);
+      const nearest = Math.round(-x / RS.PITCH), proj = Math.round(-(x + vel * 0.2) / RS.PITCH);
+      goToX(-clampK(nearest + Math.sign(proj - nearest) * Math.min(1, Math.abs(proj - nearest))) * RS.PITCH, vel);
+    }
+    function lock(e) {
+      anim = null; drag.locked = true; drag.x0 = x; drag.sx = e.clientX;
+      try { rs.setPointerCapture(e.pointerId); } catch (_) {}
+      rs.classList.add('is-drag');
+    }
+    rs.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      Sfx.unlock(); pending = null; onPick(null);
+      drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, x0: x, locked: false, moved: 0, t: performance.now(), samples: [[performance.now(), x]] };
+      if (e.pointerType === 'mouse') lock(e);
     });
-    select(k0, false);
-    return { get k() { return k; }, stop() { cancelAnimationFrame(raf); } };
+    rs.addEventListener('pointermove', (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+      drag.moved = Math.max(drag.moved, Math.hypot(dx, dy));
+      if (!drag.locked) {
+        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+        if (Math.abs(dy) > Math.abs(dx)) { drag = null; return; }   // vertical: the page scrolls
+        lock(e);
+      }
+      if (Math.abs(e.clientX - drag.sx) > 2) moved();
+      x = bound(drag.x0 + (e.clientX - drag.sx));
+      const sm = drag.samples; sm.push([performance.now(), x]); while (sm.length > 2 && sm[sm.length - 1][0] - sm[0][0] > 80) sm.shift();
+      render();
+    });
+    const endDrag = (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const d = drag; drag = null; rs.classList.remove('is-drag');
+      if (d.moved < 6 && performance.now() - d.t < 400) {   // a tap: bring that answer in
+        if (single) {   // a tap either side of the TV steps one size down / up
+          const c = rs.getBoundingClientRect().left + RS.IND, dx = e.clientX - c;
+          if (Math.abs(dx) > 50) goToX(-clampK(sel + Math.sign(dx)) * RS.PITCH, 0); else { pending = 'tap'; release(0); }
+          return;
+        }
+        const hit = document.elementsFromPoint(e.clientX, e.clientY).find((el) => el.closest && el.closest('.rsi'));
+        if (hit) { pending = 'tap'; goToX(-clampK(+hit.closest('.rsi').dataset.i) * RS.PITCH, 0); return; }
+        release(0); return;
+      }
+      if (!d.locked) return;
+      pending = 'swipe';
+      const sm = d.samples, a = sm[0], b = sm[sm.length - 1];
+      release(e.type === 'pointercancel' ? 0 : (b[0] > a[0] ? ((b[1] - a[1]) / (b[0] - a[0])) * 1000 : 0));
+    };
+    rs.addEventListener('pointerup', endDrag); rs.addEventListener('pointercancel', endDrag);
+    rs.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!anim) onPick('tap'); return; }
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault(); goToX(-clampK(sel + (e.key === 'ArrowRight' ? 1 : -1)) * RS.PITCH, 0);
+    });
+    render(false);
+    return { get k() { return sel; }, stop() { anim = null; pending = null; cancelAnimationFrame(raf); cancelAnimationFrame(waveRaf); clearTimeout(dotT); } };
   }
 
   // one question on the stage; dir 1 = from the right, −1 = from the left, 0 = the first one rising in
@@ -1667,20 +1886,22 @@ const PP = (() => {
       PP.commit(qCount, [qCount.animate([{ opacity: 0, transform: `translateY(${dir < 0 ? -4 : 4}px)` }, { opacity: 1, transform: 'none' }], { duration: 260, easing: EASE_OUT, fill: 'both' })], { opacity: 1, transform: '' });
     }
     const next = node(`<div class="qz__page qz__page--${Q.key}">
-      <p class="qz__q">${Q.q}</p><p class="qz__sub">${Q.sub}</p>
-      <div class="pv pv--${Q.screen ? 'screen' : Q.single ? 'size' : 'photos'}" aria-hidden="true">
-        ${Q.screen ? `<i class="pv__amb">${Q.opts.map((o) => `<i style="--c:${o[3][1]}"></i>`).join('')}</i>` : '<i class="pv__light"></i>'}<i class="pv__floor"></i>
-        ${Q.screen ? `<div class="pv__tv" style="left:${(315 - TV_SCR) / 2}px;width:${TV_SCR}px"><span class="scr">${tvImg([Q.single, TV_SCR / TV_W])}
+      <p class="qz__q">${Q.q}</p>
+      <div class="rs" role="${Q.single ? 'slider' : 'listbox'}" tabindex="0" aria-label="${Q.q}" aria-description="${Q.sub}">
+        ${Q.screen ? `<i class="rs__amb" aria-hidden="true">${Q.opts.map((o) => `<i style="--c:${o[3][1]}"></i>`).join('')}</i>` : '<i class="rs__sel" aria-hidden="true"></i>'}
+        ${Q.screen ? `<div class="rsi rsi--single rsi--screen" style="left:${RS.IND - TV_SCR / 2}px;width:${TV_SCR}px"><span class="scr">${tvImg([Q.single, TV_SCR / TV_W])}
           <span class="scr__screen" style="left:${SCREEN.l}%;top:${SCREEN.t}%;width:${SCREEN.w}%;height:${SCREEN.h}%">${Q.opts.map((o) => `<i class="scr__l"><b style="background-image:url(../assets/tv/screen-${o[3][0]}.webp)"></b></i>`).join('')}<i class="scr__seam"></i><i class="scr__glare"></i></span></span></div>`
-          : Q.single ? `<div class="pv__tv" style="left:${(315 - TV_BIG) / 2}px;width:${TV_BIG}px">${tvImg([Q.single, TV_BIG / TV_W])}</div>`
-          : Q.opts.map(([, , , look]) => `<span class="pv__ph">${tvImg([look[0], look[1] * 1.08])}</span>`).join('')}
+          : Q.single ? `<div class="rsi rsi--single" style="left:${RS.IND - TV_BIG / 2}px;width:${TV_BIG}px">${tvImg([Q.single, TV_BIG / TV_W])}</div>`
+          : Q.opts.map(([label, , , look], k) => `<div class="rsi" role="option" aria-label="${label}" id="rsi-${Q.key}-${k}" data-i="${k}" style="left:${RS.IND - TV_W / 2 + k * RS.PITCH}px">${tvImg(look)}</div>`).join('')}
+        <div class="rs__read" aria-hidden="true"></div>
+        <div class="rs__ruler"><div class="rs__ticks">${Array.from({ length: (Q.opts.length - 1) * (RS.PITCH / RS.TICK) + 1 }, (_, j) =>
+          `<i class="rs__tick${j % (RS.PITCH / RS.TICK) ? '' : ' rs__tick--mark'}" style="left:${RS.IND - 1 + j * RS.TICK}px"></i>`).join('')}</div></div>
+        <i class="rs__ind" aria-hidden="true"></i><img class="rs__dot" src="../assets/2a34b.svg" width="4" height="4" alt="" />
       </div>
-      <div class="pl" role="radiogroup" aria-label="${Q.q}">
-        ${Q.opts.map(([label, , hint], k) => `<button class="pl__b" type="button" role="radio" aria-checked="false" data-k="${k}"><b class="pl__t">${label}</b><span class="pl__h">${hint}</span><i class="pl__r" aria-hidden="true">${CHK}</i></button>`).join('')}</div>
     </div>`);
     const old = page; page = next; stage.appendChild(next);
     if (slider) slider.stop();
-    slider = makePills(next, Q, k0);
+    slider = makeRoster(next, Q, k0, autoPick);
     /* one push: the outgoing question and the incoming one ride the SAME critically-damped spring, the
        old moving out by PAGE_DX as the new moves in from PAGE_DX on the other side, crossfading over
        the first part of the travel — so it reads as one sheet sliding, never a fade-out then a pop-in */
@@ -1693,39 +1914,69 @@ const PP = (() => {
     PP.commit(next, [springAnim(next, 0, 1, (p) => ({ transform: `translate(${(dx * (1 - p)).toFixed(2)}px,${(dy * (1 - p)).toFixed(2)}px)` }), PAGE),
       next.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 320, delay: dir ? 50 : 80, easing: 'cubic-bezier(.25,.1,.25,1)', fill: 'both' })], { opacity: 1, transform: '' });
     // footer: Skip on the first step, Back after it; Next turns into "Show my picks" on the last
-    qSkip.disabled = i > 0; qBack.disabled = i === 0;
-    fadeEl(qSkip, i > 0 ? 0 : 1); fadeEl(qBack, i === 0 ? 0 : 1);
-    const label = i === QUESTIONS.length - 1 ? 'Show my picks' : 'Next';
-    if (qNext.textContent !== label) { qNext.textContent = label; PP.commit(qNext, [qNext.animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: 200, easing: OUT, fill: 'both' })], { opacity: 1 }); }
+    // top right: Back fades in beside Skip from the second question; Skip leaves on the last one
+    if (qBack.disabled !== (i === 0)) { qBack.disabled = i === 0; fadeEl(qBack, i === 0 ? 0 : 1); }
+    setLast(i === QUESTIONS.length - 1);
     later(dir ? 300 : 340, () => { busy = false; });
   }
-  // Next: the slider's stop is the answer; the step's segment fills and the next question slides in
-  qNext.addEventListener('click', () => {
-    if (busy || !page || !slider) return;
+  /* a choice moves on by itself: the step's segment fills and the next question slides in (the last one
+     goes to "Personalizing for you"). A tap moves on 360ms after its answer lands; a swipe waits 800ms
+     so the eye can read where it landed — a new touch in that time cancels it. */
+  let autoT = 0;
+  function autoPick(kind) {
+    clearTimeout(autoT);
+    if (kind) { autoT = setTimeout(answer, kind === 'tap' ? 360 : 800); timers.push(autoT); }
+  }
+  function answer() {
+    if (!page || !slider || !box.classList.contains('is-asking')) return;
+    if (busy) { autoT = setTimeout(answer, 120); return; }   // still sliding in: choose once it has
     busy = true;
     const Q = QUESTIONS[step], k = slider.k, [label, val] = Q.opts[k];
     answers[Q.key] = val; answers[Q.key + 'K'] = k; answers[Q.key + 'Label'] = val === null ? 'Any picture' : label;
     fill(step, true);
     later(120, () => (step + 1 < QUESTIONS.length ? show(step + 1, 1) : personalize()));   // the push starts while the segment fills
-  });
+  }
   qBack.addEventListener('click', () => {
     if (busy || step === 0) return;
+    Haptics.tick();
     answers[QUESTIONS[step].key + 'K'] = slider.k;   // keep where this slider was, for when Next comes back to it
-    fill(step - 1, false); show(step - 1, -1);
+    clearTimeout(autoT); fill(step - 1, false); show(step - 1, -1);
   });
-  // Skip: no questions — the brand rail as in iteration 3
+  /* Skip: this question only — it is left unanswered (every TV scores the same on it, the summary reads
+     "Any budget / Any size / Any picture") and the next question slides in as after a choice; Skip on the
+     last question goes to "Personalizing for you". Back returns to a skipped question at its default. */
+  const ANY = { budget: 'Any budget', size: 'Any size', tech: 'Any picture' };
+  /* the last question has no Skip: it fades out (with Back's hairline) and Back glides into its place at
+     the right edge (FLIP on the page spring); coming Back from the last question plays it in reverse */
+  const qActs = qBack.parentElement;
+  function setLast(on) {
+    if (qActs.classList.contains('is-last') === on) return;
+    qSkip.disabled = on;
+    const x0 = qBack.getBoundingClientRect().left;
+    qActs.classList.toggle('is-last', on);
+    const dx = x0 - qBack.getBoundingClientRect().left;
+    qBack.getAnimations().filter((a) => a.effect && a.effect.getKeyframes().some((k) => k.transform)).forEach((a) => a.cancel());
+    if (dx && !PP.reduce.matches) PP.commit(qBack, [springAnim(qBack, dx, 0, (v) => ({ transform: `translate3d(${(+v).toFixed(2)}px,0,0)` }), PAGE)], { transform: '' });
+    if (!on) PP.commit(qSkip, [qSkip.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, delay: 60, easing: OUT, fill: 'both' })], { opacity: 1 });
+  }
   qSkip.addEventListener('click', () => {
-    if (busy) return;
-    busy = true;
-    [qBar, stage, foot].forEach((el) => fadeEl(el, 0, 180));
-    later(140, () => {
-      hTitle.textContent = CAT[catKey].title; count.textContent = `1 of ${cards.length}`;
-      PP.commit(hTitle, [fadeTo(hTitle, 0, 1, 240, 0, OUT, [{ transform: 'translateY(4px)' }, { transform: 'none' }])], { opacity: 1, transform: '' });
-      PP.commit(count, [fadeTo(count, 0, 1, 240, 40, OUT)], { opacity: 1 });
-      box.classList.remove('is-asking');
-      cardsIn(40);
-    });
+    if (busy || !page || !slider || !box.classList.contains('is-asking')) return;
+    busy = true; clearTimeout(autoT); slider.stop();
+    Haptics.tick();
+    const Q = QUESTIONS[step];
+    delete answers[Q.key]; delete answers[Q.key + 'K']; answers[Q.key + 'Label'] = ANY[Q.key];
+    fill(step, true);
+    scheduleLive();
+    later(120, () => (step + 1 < QUESTIONS.length ? show(step + 1, 1) : personalize()));
   });
+  /* live PLP: when a control lands on a new answer (after a 420ms pause, so a fast swipe doesn't reload
+     the grid at every stop), the grid re-sorts to the best fits for the answers so far */
+  let liveT = 0;
+  function liveState() { const a = {}; QUESTIONS.forEach((Q, i) => { const k = i === step && slider ? slider.k : answers[Q.key + 'K']; if (k != null && k >= 0) a[Q.key] = Q.opts[k][1]; }); return a; }
+  function scheduleLive() {
+    clearTimeout(liveT);
+    liveT = setTimeout(() => { if (box.classList.contains('is-asking')) plp.dispatchEvent(new CustomEvent('plp:personal', { detail: { answers: liveState(), live: true } })); }, 420);
+  }
   function pickCard({ brand, p, spec, pct }) {
     const b = TV_BRAND[brand], t = p.title;
     const tech = spec.tech === 'QLED' && /qned/i.test(t) ? 'QNED' : spec.tech;   // LG's QNED matches a QLED answer but keeps its name
@@ -1740,8 +1991,8 @@ const PP = (() => {
     cards.forEach((c) => { c.style.opacity = 0; });
     hTitle.textContent = 'Find your TV';
     fills.forEach((f) => f.classList.remove('is-done', 'is-cur'));
-    [qBar, stage, foot].forEach((el) => { el.getAnimations().forEach((a) => a.cancel()); el.style.opacity = ''; el.style.transform = ''; });
-    qBack.style.opacity = 0; qBack.disabled = true; qSkip.style.opacity = 1; qSkip.disabled = false; qNext.textContent = 'Next';
+    [qBar, stage, qBack, qActs].forEach((el) => { el.getAnimations().forEach((a) => a.cancel()); el.style.opacity = ''; el.style.transform = ''; });
+    qBack.disabled = true; qActs.classList.remove('is-last'); qSkip.disabled = false; qSkip.getAnimations().forEach((x) => x.cancel()); qSkip.style.opacity = '';
     show(0, 0);
   }
   /* "Personalizing for you" — a calm, focused beat (no logo, no coloured glow, no model picked):
@@ -1755,36 +2006,38 @@ const PP = (() => {
   const PZ = { STEPS: [0, 680, 1360], FILL_MS: 2000, FOUND_AT: 2060, DONE_AT: 2700 };
   const CHECK = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="#0f8857"/><path class="pz__ck" d="M4.6 8.3l2.2 2.2 4.6-4.8" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function personalize() {
+    clearTimeout(liveT);
     const d = { answers, at: PZ.DONE_AT + 260 };
     plp.dispatchEvent(new CustomEvent('plp:personal', { detail: d }));   // the grid starts shimmering now
     CARDS = (d.best || []).map(pickCard); personal = true;
     const said = count.textContent;   // pager.reset() writes "1 of 6"; keep the picker's count until the picks arrive
     buildTrack(); pager.reset(); count.textContent = said; cards.forEach((c) => { c.style.opacity = 0; });   // the matches wait, hidden, behind the picker
     fills.forEach((f) => { f.classList.add('is-done'); f.classList.remove('is-cur'); });
-    [qBar, stage, foot].forEach((el) => fadeEl(el, 0, 220));
+    [qBar, stage].forEach((el) => fadeEl(el, 0, 220));   // the whole picker goes, its top row too
     // the TV from the answers: its width from the size answer, its screen from the picture answer
     const kSize = QUESTIONS[1].opts[answers.sizeK != null ? answers.sizeK : 1][3];
-    const W = Math.round(128 + 76 * (kSize - 0.56) / 0.44), H = Math.round(W * 0.615);
+    const W = Math.round(122 + 62 * (kSize - 0.56) / 0.44), H = Math.round(W * 0.615);   // 122 → 184 wide in its card
     const scr = QUESTIONS[2].opts[answers.techK != null ? answers.techK : 0][3][0];
     const total = d.total || 48;
     const msgs = ['Matching your budget', `Checking ${total} TVs`, 'Ranking the best picks'];
     const perso = node(`<div class="pz">
-      <div class="pz__stagearea"><div class="pz__tv" style="width:${W}px;height:${H}px">
+      <div class="pz__card"><div class="pz__tv" style="width:${W}px;height:${H}px">
         <img src="../assets/tv/qled65.webp" width="${W}" height="${H}" alt="" />
         <span class="pz__scr" style="left:${SCREEN.l}%;top:${SCREEN.t}%;width:${SCREEN.w}%;height:${SCREEN.h}%"><b style="background-image:url(../assets/tv/screen-${scr}.webp)"></b><i class="pz__sweep"></i></span>
       </div></div>
       <p class="pz__title">Personalizing for you</p>
-      <p class="pz__sum">${QUESTIONS.map((Q) => `<span>${answers[Q.key + 'Label']}</span>`).join('<i>·</i>')}</p>
+      <p class="pz__sum">${QUESTIONS.map((Q) => `<span>${answers[Q.key + 'Label']}</span>`).join('')}</p>
       <div class="pz__status"><span class="pz__msg">${msgs[0]}</span></div>
       <div class="pz__bar"><i></i></div>
     </div>`);
     ask.appendChild(perso);
-    const tv = perso.querySelector('.pz__tv'), title = perso.querySelector('.pz__title'), sum = perso.querySelector('.pz__sum');
+    const tv = perso.querySelector('.pz__tv'), title = perso.querySelector('.pz__title'), chips = [...perso.querySelectorAll('.pz__sum span')], cardEl = perso.querySelector('.pz__card');
     const status = perso.querySelector('.pz__status'), barEl = perso.querySelector('.pz__bar'), barFill = barEl.firstElementChild;
-    // in: the TV rises on a soft spring, the copy follows 80ms apart
+    // in: the card settles in, the TV rises in it on a soft spring, then the title, each answer chip and the status, 60ms apart
+    PP.commit(cardEl, [cardEl.animate([{ opacity: 0, transform: 'scale(.97)' }, { opacity: 1, transform: 'none' }], { duration: 380, delay: 60, easing: EASE_OUT, fill: 'both' })], { opacity: 1, transform: '' });
     PP.commit(tv, [springAnim(tv, 0, 1, (q) => ({ transform: `translateY(${(18 * (1 - q)).toFixed(2)}px) scale(${(0.94 + 0.06 * q).toFixed(4)})` }), spr(0.6, 1), 140),
       tv.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 420, delay: 140, easing: EASE_OUT, fill: 'both' })], { opacity: 1, transform: '' });
-    [title, sum, status, barEl].forEach((el, k) => PP.commit(el, [el.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 420, delay: 240 + k * 80, easing: EASE_OUT, fill: 'both' })], { opacity: 1, transform: '' }));
+    [title, ...chips, status, barEl].forEach((el, k) => PP.commit(el, [el.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 420, delay: 240 + k * 60, easing: EASE_OUT, fill: 'both' })], { opacity: 1, transform: '' }));
     // the progress line fills over the whole beat (ease in-out); the status steps through its lines
     PP.commit(barFill, [barFill.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: PZ.FILL_MS, delay: 320, easing: 'cubic-bezier(.45,0,.25,1)', fill: 'both' })], { transform: 'scaleX(1)' });
     const say = (html, cls = '') => {
@@ -1806,6 +2059,7 @@ const PP = (() => {
     later(PZ.DONE_AT, () => {
       // hand-off as one crossfade: the beat lifts away while the header and the rail come in beneath it
       box.classList.add('is-handoff'); box.classList.remove('is-asking');
+      growPanel();
       PP.commit(perso, [perso.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(-10px)' }], { duration: 300, easing: OUT, fill: 'both' })], { opacity: 0 });
       hTitle.textContent = 'Your TV picks'; count.textContent = `1 of ${cards.length}`;
       PP.commit(hTitle, [fadeTo(hTitle, 0, 1, 300, 100, OUT, [{ transform: 'translateY(4px)' }, { transform: 'none' }])], { opacity: 1, transform: '' });
@@ -1816,6 +2070,7 @@ const PP = (() => {
     });
   }
   function resetAsk() {
+    clearTimeout(liveT);
     ask.getAnimations({ subtree: true }).forEach((x) => x.cancel());
     if (slider) { slider.stop(); slider = null; }
     stage.innerHTML = ''; page = null; busy = false;
@@ -1840,8 +2095,10 @@ const PP = (() => {
 
   function reveal() {
     running = true;
-    // grid edge: the box grows 0 → H and the grid below rides on it
-    pushGrid(0, H, (el, a, b, fmt) => PP.spring(el, a, b, fmt));
+    // grid edge: the box grows 0 → H and the grid below rides on it (TVs: the shorter asking panel first)
+    const asks = catKey === 'tv' && !personal;
+    bar.style.height = asks ? ASK_BAR + 'px' : '';
+    pushGrid(0, asks ? ASK_H : H, (el, a, b, fmt) => PP.spring(el, a, b, fmt));
     // the panel: scale + rise on one spring progress, plus the fade
     const card = PP.spring(bar, 0, 1, (p) => ({ transform: `translateY(${((1 - p) * REVEAL.CARD_RISE).toFixed(3)}px) scale(${(REVEAL.CARD_SCALE + (1 - REVEAL.CARD_SCALE) * p).toFixed(4)})` }));
     PP.commit(bar, [card, revealFade(bar, REVEAL.CARD_FADE_AT)], { opacity: 1, transform: '' });
@@ -1882,7 +2139,7 @@ const PP = (() => {
   const fadeTo = (el, from, to, ms, delay = 0, easing = OUT, extra) =>
     el.animate([{ opacity: from, ...(extra && extra[0]) }, { opacity: to, ...(extra && extra[1]) }], { duration: ms, delay, easing, fill: 'both' });
   const rel = (el) => { const a = el.getBoundingClientRect(), b = bar.getBoundingClientRect(); return { x: a.left - b.left, y: a.top - b.top, w: a.width, h: a.height }; };
-  const onScreen = (i) => { const r = rel(slots[i]); return r.x < 343 && r.x + r.w > 0; };
+  const onScreen = (i) => { const r = rel(slots[i]); return r.x < 351 && r.x + r.w > 0; };
   // coin pop: SwiftUI-style bouncy spring (response 0.42s, ζ 0.52 → ~15% overshoot), once the panel is mostly closed
   const POP = spr(0.42, 0.52), POP_AT = 150;
 
@@ -2103,7 +2360,7 @@ const Haptics = (() => {
    the same iteration (a clean reload back to Home). */
 (() => {
   const nav = document.getElementById('vswitch'); if (!nav) return;
-  const PATHS = { 1: '/', 2: '/v2/', 3: '/v3/', 4: '/v4/', 5: '/v5/' };
+  const PATHS = { 1: '/', 2: '/v2/', 3: '/v3/', 4: '/v4/', 5: '/v5/', 6: '/v6/', 7: '/v7/' };
   const here = document.documentElement.dataset.variant || '1';
   const want = new URLSearchParams(location.search).get('v');
   if (want && PATHS[want] && want !== here) { location.replace(PATHS[want]); return; }

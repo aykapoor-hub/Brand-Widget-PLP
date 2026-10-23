@@ -37,10 +37,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
 }
-p, h2 { margin: 0; font-weight: inherit; }
-img { display: block; max-width: none; }
-a { color: inherit; text-decoration: none; }
-button { all: unset; box-sizing: border-box; cursor: pointer; }
+/* (the element resets stop at the GitFlow Home: it brings its own styles — :where keeps them at zero specificity) */
+:where(p, h2):where(:not(#nkHome *)) { margin: 0; font-weight: inherit; }
+:where(img):where(:not(#nkHome *)) { display: block; max-width: none; }
+:where(a):where(:not(#nkHome *)) { color: inherit; text-decoration: none; }
+:where(button):where(:not(#nkHome *)) { all: unset; box-sizing: border-box; cursor: pointer; }
 
 /* ── primitives ──────────────────────────────────────────────────────── */
 .ab   { position: absolute; }
@@ -1072,3 +1073,139 @@ img.contain { object-fit: contain; }
 .pz__bar i { position: absolute; inset: 0; border-radius: inherit; background: #1d2539; transform: scaleX(0); transform-origin: 0 50%; }
 @media (prefers-reduced-motion: reduce) { .pz__scr b, .pz__sweep { animation: none; } }
 
+
+/* ── Home = the "noon App GitFlow" project's Home (gf/, mounted into #nkHome by its own bundle) ──────────
+   The kit lays its screens out for its 390-wide device, so it renders at 390 and is scaled to this 375
+   frame (×375/390) — its exact layout, proportionally; its height follows the phone (×390/375), and its
+   top inset is this page's status bar (42.565 px = 44.27 in its units) instead of its 54. */
+.nk-home { position: absolute; inset: 0; overflow: hidden; background: #fff; }
+.nk-home > div { position: absolute !important; left: 0 !important; top: 0 !important; width: 390px !important; height: 104% !important;
+  transform: scale(0.961538) !important; transform-origin: 0 0 !important; }
+.nk-home > div > div, .nk-home [class*="_frameless_"] { width: 100% !important; height: 100% !important; box-shadow: none !important; }
+.nk-home [class*="_viewport_"] { width: 100% !important; height: 100% !important; --nk-inset-top: 44.27px !important; }
+.nk-entry { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* ── PLP = the "noon App GitFlow" listing (its ListingScreen, 1:1 at this 375 frame) ──────────────────
+   A grey page (#f2f3f7) under a white header with a soft shadow: the shared search bar (y 52), marketplace
+   tabs (y 112: 8 + 55, five 106px tabs 12 apart — logo 24 + name 12/17 #000, a black 3px indicator, radius 2),
+   chips (y 175: 12 15, 30px, 1px #eaecf0, radius 20, 13/16 500 #475067, icons 16 + 10px chevron, a 1×24
+   divider after Sort). Then "N results for “q”" (12/16 #666d85, 700 query), the brand widget (white panel)
+   and the grid (12 in, 12 apart): white 12-radius cards — a 231px photo with the heart (24, white 70%) and
+   the "+" (36, white, 1px #f2f3f7, radius 8), dots pill; title 14/18 500 #212121 ×2, rating pill (#f7f8fa,
+   radius 6: ★ + 12/14 600 #101628 + (count) #666d85), price 16/20 700 #0e0e0e (+ was / % OFF), a coupon
+   chip, the express badge. The glass tab bar floats 20px off the bottom (white 64%, blur 14, radius 99). */
+.plp { background: #f2f3f7; }
+.plp::before { content: ''; position: absolute; left: 0; top: 0; width: 375px; height: 229px; background: #fff; z-index: 1;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+.plp__mps.gfmp { top: 112px; height: 63px; background: #fff; z-index: 2; }
+.gfmp .mps__row { top: 8px; height: 55px; gap: 12px; padding: 0 16px; align-items: flex-start; }
+.gfmp .mp { width: 106px; height: 43px; gap: 2px; }
+.gfmp .mp__logo { width: 106px; height: 24px; }
+.gfmp .mp__logo > img { display: block; }
+.gfmp__pill { display: flex; align-items: center; justify-content: center; gap: 0; width: 67px; height: 20px; border-radius: 9999px; }
+.gfmp__pill img { display: block; }
+.gfmp__pill--sm { background: #2122b8; }
+.gfmp__pill--global { background: #f0ddff; }
+.gfmp__pill--min { background: #d12b28; }
+.mp__name { font-family: var(--noon); font-weight: 400; font-size: 12px; line-height: 17px; color: #000; white-space: nowrap; }
+.gfmp .mps__tab { left: 16px; top: 52px; width: 106px; height: 3px; background: #000; border-radius: 2px; }
+.plp__tags { left: 0; top: 175px; width: 375px; height: 54px; background: #fff; z-index: 2; }
+.tags__row { top: 12px; height: 30px; gap: 8px; padding: 0 15px; align-items: center; }
+.chip { height: 30px; padding: 0 11px; gap: 6px; border-radius: 20px; background: #fff; box-shadow: inset 0 0 0 1px #eaecf0;
+  font-family: var(--noon); font-weight: 500; font-size: 13px; line-height: 16px; color: #475067; }
+.chip:first-child { padding: 0 11px; }
+.chip--plain { padding: 0 10px; }
+.chip__ico { width: 16px; height: 16px; }
+.chip__chev { width: 10px; height: 10px; }
+.chip__t { padding: 0; }
+.chip__mask { display: block; flex: none; width: 16px; height: 16px; background: #475067; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
+.chip__div { position: relative; flex: none; width: 1px; height: 24px; margin: 0 4px; background: #eaecf0; }
+.tags__row .skel--chip { height: 30px; border-radius: 20px; }
+.plp__scroll { top: 229px; height: 583px; background: #f2f3f7; }
+.plp__meta { position: relative; margin: 0; padding: 2px 16px 8px; font-family: var(--noon); font-weight: 400; font-size: 12px; line-height: 16px; color: #666d85; min-height: 26px; }
+.plp__meta b { font-weight: 700; }
+.plp__grid { background: #f2f3f7; grid-template-columns: 169.5px 169.5px; column-gap: 12px; row-gap: 12px; padding: 2px 12px 0; }
+.pslot { width: 169.5px; height: 373px; }
+.skel { border-radius: 12px; }
+.brw__bar { background: #fff; box-shadow: 0 0 0 1px #eceef3; }
+.brw__card { box-shadow: inset 0 0 0 1px #eceef3; }
+/* the card */
+.pcard { position: absolute; inset: 0; overflow: hidden; background: #fff; border-radius: 12px; opacity: 0; }
+.pcard::after { display: none; }
+.pcard__media { position: relative; width: 169.5px; height: 231px; overflow: hidden; background: #fff; border-radius: 12px 12px 0 0; }
+.pcard__photo { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; }
+.pcard__ov { position: absolute; inset: 0; background: rgba(0,0,0,.02); pointer-events: none; }
+.pcard__wish { position: absolute; left: auto; right: 4px; top: 4px; width: 24px; height: 24px; padding: 0; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.7); }
+.pcard__wish svg { display: block; }
+.pcard__add { position: absolute; left: auto; right: 4px; top: auto; bottom: 4px; width: 36px; height: 36px; padding: 0; display: grid; place-items: center;
+  border-radius: 8px; background: #fff; box-shadow: inset 0 0 0 1px #f2f3f7, 0 1px 4px rgba(0,0,0,.06); }
+.pcard__add svg { display: block; }
+.pcard__dots { position: absolute; left: 50%; top: auto; bottom: 7px; width: auto; height: 14px; transform: translateX(-50%); display: flex; align-items: center; gap: 6px;
+  padding: 4px 8px; border-radius: 20px; background: rgba(255,255,255,.7); }
+.pcard__dots i { flex: none; border-radius: 20px; background: rgba(14,14,14,.25); }
+.pcard__dots i:nth-child(1) { width: 6px; height: 6px; background: #0e0e0e; }
+.pcard__dots i:nth-child(2) { width: 5px; height: 5px; }
+.pcard__dots i:nth-child(3) { width: 4px; height: 4px; }
+.pcard__dots i:nth-child(4) { display: none; }
+.pcard__info { position: relative; left: auto; top: auto; width: auto; padding: 6px 8px 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.pcard__title { position: relative; left: auto; top: auto; width: 100%; height: 36px; overflow: hidden;
+  font-family: var(--noon); font-weight: 500; font-size: 14px; line-height: 18px; letter-spacing: 0; color: #212121; }
+.pcard__rate { position: relative; left: auto; top: auto; height: 18px; display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 6px; background: #f7f8fa;
+  font-size: 12px; line-height: 14px; letter-spacing: 0; }
+.pcard__rate b { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; color: #101628; }
+.pcard__rate span { font-weight: 400; color: #666d85; }
+.pcard__rate svg { display: block; }
+.pcard__price { position: relative; left: auto; top: auto; height: 20px; display: flex; align-items: baseline; gap: 4px; margin-top: 2px; white-space: nowrap; }
+.pcard__sale { font-weight: 700; font-size: 16px; line-height: 20px; color: #0e0e0e; font-feature-settings: "case" 1; }
+.pcard__was { font-weight: 400; font-size: 12px; line-height: 14px; color: #7e859b; text-decoration: line-through; }
+.pcard__off { font-weight: 600; font-size: 12px; line-height: 14px; color: #05af25; }
+.pcard__coupon { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 4px; background: #e9fbf9; box-shadow: inset 0 0 0 .5px #bbe0de;
+  font-weight: 600; font-size: 11px; line-height: 14px; color: #0a4f4a; white-space: nowrap; }
+.pcard__flag { position: absolute; left: 8px; bottom: 10px; height: 18px; }
+.pcard__flag img { display: block; height: 18px; width: auto; }
+/* the glass tab bar */
+.bnav--plp.gftab { left: 20px; right: auto; top: auto; bottom: 20px; width: 335px; height: 60px; z-index: 4; background: none; box-shadow: none; }
+.gftab__bar { position: absolute; inset: 0; display: flex; align-items: center; padding: 0 5px; border-radius: 9999px;
+  background: rgba(255,255,255,.64); -webkit-backdrop-filter: blur(14px) saturate(1.8); backdrop-filter: blur(14px) saturate(1.8);
+  box-shadow: 0 8px 28px rgba(0,0,0,.12), 0 0 0 .5px rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,.9), inset 0 -1px 1px rgba(255,255,255,.4); }
+.is-android .gftab__bar { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(255,255,255,.94); }
+.gftab__lens { position: absolute; left: 5px; top: 5px; width: 65px; height: 50px; border-radius: 9999px; background: rgba(0,0,0,.06); }
+.gftab__it { position: relative; flex: 1 0 0; height: 50px; display: grid; place-items: center; -webkit-tap-highlight-color: transparent; }
+.gftab__it i { display: block; width: 27px; height: 27px; background: #1d2539; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
+.gftab__badge { position: absolute; left: 50%; top: 5px; margin-left: 4px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9999px; background: #1d2539; color: #fff;
+  box-shadow: 0 0 0 1.5px #fff; font-weight: 700; font-size: 10px; line-height: 17px; text-align: center; }
+.plp__scroll::after { height: 96px; }
+
+.srch__bar { z-index: 3; }   /* the shared search bar stays above the PLP header backing */
+/* the search bar is the original 343×44 at y 49 again (bottom 93): the GitFlow header sits 12 under it */
+.plp::before { height: 222px; }
+.plp__mps.gfmp { top: 105px; }
+.plp__tags { top: 168px; }
+.plp__scroll { top: 222px; height: 590px; }
+.plp__scroll > .brw { margin-top: 8px; }   /* no results line: the brand widget sits 8px under the chips */
+/* white page (user request): the PLP, its scroll and the grid are white; the brand widget panel is its own
+   #f7f8fa again (no hairline), and each card keeps its edge with a 1px #f2f3f7 border over the photo */
+.plp, .plp__scroll, .plp__grid { background: #fff; }
+.brw__bar { background: #f7f8fa; box-shadow: none; }
+.brw__card { box-shadow: none; }
+.pcard::after { display: block; content: ''; position: absolute; inset: 0; border: 1px solid #f2f3f7; border-radius: 12px; pointer-events: none; z-index: 3; }
+
+/* the brand widget panel spans the product grid's width (x 12 → 363, the cards' outer edges): 351 wide.
+   Its content keeps its 343-based layout, centred 4px further in; the edge-to-edge parts (the brand rail,
+   the picker's roster and rulers) widen to the panel and their centre line moves to x 175. */
+.brw__bar { left: 12px; width: 351px; }
+.brw__head { left: 18px; }
+.brw__sel { left: 4px; }
+.brw__rail { width: 351px; }
+.brw__track { padding: 0 18px; }
+.brw__ask { left: 4px; }
+.qz__stage { left: -4px; width: 351px; }
+.qz__page { left: 18px; }
+.rs { left: -18px; width: 351px; }
+.rs__ruler, .rs__read { width: 351px; }
+.rs__sel { left: 114px; }
+.rs__amb { left: 40px; }
+.rs__ind, .tp__rs .rs__ind { left: 174px; }
+.rs__dot, .tp__rs .rs__dot { left: 173px; }
+.tp__rs { left: -18px; width: 351px; }
+.tp__ruler { width: 351px; }

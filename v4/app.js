@@ -109,6 +109,7 @@ if (IS_ANDROID) document.documentElement.classList.add('is-android');
 
   /* ── Recommended tabs ────────────────────────────────────────────── */
   const tabs = document.getElementById('tabs');
+  if (!tabs) return;   // the Home is the GitFlow Home now (#nkHome): none of this markup exists
   tabs.addEventListener('click', (e) => {
     const t = e.target.closest('.tab');
     if (!t) return;
@@ -270,6 +271,17 @@ const PP = (() => {
   });
 
   entry.addEventListener('click', openSearch);
+  // the GitFlow Home (#nkHome, React): its search bar opens this page's Search, with the hint it was showing
+  const nk = document.getElementById('nkHome');
+  if (nk) nk.addEventListener('click', (e) => {
+    const bar = e.target.closest && e.target.closest('button[data-hint-prefix]');
+    if (!bar || e.target.closest('[aria-label*="amera" i]')) return;
+    e.preventDefault(); e.stopPropagation();
+    const r = bar.getBoundingClientRect();
+    const word = [...bar.querySelectorAll('[class*="_word_"]')].find((w) => { const b = w.getBoundingClientRect(); return b.top >= r.top - 1 && b.bottom <= r.bottom + 1; });
+    input.placeholder = `${bar.dataset.hintPrefix} ${word ? word.textContent.trim() : '“Apple”'}`;
+    openSearch();
+  }, true);
   entry.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSearch(); }
   });
@@ -928,24 +940,27 @@ const PP = (() => {
   let cat = 'phone', LISTS = PHONE_LISTS;
   // noon's review counts: 995 → "995", 2857 → "2.9K", 33767 → "33.8K"
   const count = (n) => n < 1000 ? String(n) : `${(n / 1000).toFixed(1).replace(/\.0$/, '')}K`;
+  // the GitFlow listing card (its SkuCard)
+  const GF_HEART = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1d2539" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>';
+  const GF_PLUS = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d2539" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+  const GF_STAR = '<svg width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><path fill="#ffb400" d="M12 2.5l2.9 6.2 6.6.7-4.9 4.6 1.4 6.6L12 17.3l-5.9 3.3 1.4-6.6-4.9-4.6 6.6-.7z"/></svg>';
+  const money = (v) => Number(String(v).replace(/,/g, '')).toLocaleString('en-US', { maximumFractionDigits: 2 });
   const card = (p) => `
-    <article class="pcard stroke" data-sku="${p.sku}">
+    <article class="pcard" data-sku="${p.sku}">
       <div class="pcard__media">
-        <div class="pcard__clip">
-          <img class="pcard__photo" src="${CDN}${p.img}.jpg?width=400" alt="" decoding="async" />
-          <button class="pcard__wish" aria-label="Add to wishlist"><img src="${A}94524.svg" alt="" /></button>
-          <button class="pcard__add sk" aria-label="Add to cart"><img src="${A}1d902.svg" alt="" /></button>
-          <span class="pcard__dots"><i></i><i></i><i></i><i></i></span>
-        </div>
+        <img class="pcard__photo" src="${CDN}${p.img}.jpg?width=400" alt="" decoding="async" />
+        <i class="pcard__ov"></i>
+        <button class="pcard__wish" aria-label="Add to wishlist">${GF_HEART}</button>
+        <button class="pcard__add" aria-label="Add to cart">${GF_PLUS}</button>
+        <span class="pcard__dots"><i></i><i></i><i></i><i></i></span>
       </div>
       <div class="pcard__info">
         <p class="pcard__title" data-full="${p.title}">${p.title}</p>
-        <p class="pcard__rate"${p.reviews ? '' : ' style="visibility:hidden"'}><span class="star"><img src="${A}9d075.svg" alt="" /></span><b>${p.rating.toFixed(1)}&nbsp;</b><span>(${count(p.reviews)})</span></p>
-        <p class="pcard__price">&#xE001;${p.price}</p>
-        <p class="pcard__low"${p.low ? '' : ' style="visibility:hidden"'}><img src="${A}aaca9.svg" alt="" />${(p.low || 'Lowest price').replace('Lowest price', 'Lowest Price')}</p>
-        <div class="pcard__offers"${p.offers ? '' : ' style="visibility:hidden"'}><span class="offer">Extra 10%  Off </span><span class="offer">+${p.offers || 1}</span></div>
-        <img class="pcard__badge" src="${A}04813.svg" alt="express Today" />
+        <p class="pcard__rate"${p.reviews ? '' : ' style="visibility:hidden"'}><b>${GF_STAR}${p.rating.toFixed(1)}</b><span>(${count(p.reviews)})</span></p>
+        <p class="pcard__price"><span class="pcard__sale">&#xE001; ${money(p.price)}</span>${p.was ? `<span class="pcard__was">${money(p.was)}</span><span class="pcard__off">${Math.round((1 - Number(String(p.price).replace(/,/g, '')) / Number(String(p.was).replace(/,/g, ''))) * 100)}% OFF</span>` : ''}</p>
+        ${p.offers ? '<span class="pcard__coupon">Extra 10% off with coupon</span>' : ''}
       </div>
+      <div class="pcard__flag"><img src="${A}gf/express-today.svg" alt="express Today" /></div>
     </article>`;
   const slots = [];
   for (let r = 0; r < 4; r++) for (let c = 0; c < 2; c++) {
@@ -1046,7 +1061,7 @@ const PP = (() => {
      fading 353ms behind each card). A new filter mid-way restarts it.      */
   const R = { OUT_MS: 180, REVEAL_AT: 820 };
   let rTimers = [], listKey = 'all';
-  function swapTo(key, at = R.REVEAL_AT) {
+  function swapTo(key, at = R.REVEAL_AT, quiet = false) {
     if (!open || !LISTS[key] || key === listKey) return;
     listKey = key;
     rTimers.forEach(clearTimeout); rTimers = [];
@@ -1068,7 +1083,7 @@ const PP = (() => {
         s.card.replaceWith(n); s.card = n;
       });
       clampTitles();
-      Haptics.land();   // the new list arriving
+      if (!quiet) Haptics.land();   // the new list arriving (live updates from the TV picker stay quiet)
       const anims = slots.filter((s, k) => k < list.length).flatMap((s, k) => {
         const delay = k * PP.IN_STAGGER;
         const m = PP.moveY(s.card, T.CARD_RISE, 0, { delay }), f = PP.fade(s.card, 0, 1, { curve: 'out', delay });
@@ -1093,21 +1108,32 @@ const PP = (() => {
     return { size: m ? +m[1] : 0, tech, price: +p.price };
   };
   const MAX_FIT = 4 + 3 + 3 + 0.5 + 0.45;
+  // an answer not given yet (the picker is still on an earlier question) scores the same for every TV
   function fit(p, a) {
-    const s = tvSpec(p), [lo, hi] = a.budget, [s0, s1] = a.size;
-    let k = s.price >= lo && s.price <= hi ? 4 : (s.price > hi && s.price <= hi * 1.2) || (s.price < lo && s.price >= lo * 0.8) ? 1.5 : 0;
-    k += s.size >= s0 && s.size <= s1 ? 3 : Math.min(Math.abs(s.size - s0), Math.abs(s.size - s1)) <= 10 ? 1 : 0;
+    const s = tvSpec(p);
+    let k = 2;
+    if (a.budget) { const [lo, hi] = a.budget; k = s.price >= lo && s.price <= hi ? 4 : (s.price > hi && s.price <= hi * 1.2) || (s.price < lo && s.price >= lo * 0.8) ? 1.5 : 0; }
+    if (a.size) { const [s0, s1] = a.size; k += s.size >= s0 && s.size <= s1 ? 3 : Math.min(Math.abs(s.size - s0), Math.abs(s.size - s1)) <= 10 ? 1 : 0; } else k += 1.5;
     k += !a.tech ? 1.5 : s.tech === a.tech ? 3 : 0;
     k += (p.rating || 4) / 10 + Math.log10((p.reviews || 0) + 1) / 10;   // ties go to the better-rated, better-reviewed set
     return { p, spec: s, k, pct: Math.min(99, Math.round(52 + 47 * (k / MAX_FIT))) };
   }
+  /* live: the picker's controls landed on a new answer (detail.live) — the grid re-sorts to the eight
+     best fits for the answers so far, quietly and quickly; nothing reloads when the eight are unchanged.
+     clear: Skip — back to the brand mix. */
   plp.addEventListener('plp:personal', (e) => {
-    const d = e.detail, brands = Object.keys(TV_LISTS).filter((b) => b !== 'all' && b !== 'picks');
+    const d = e.detail;
+    if (cat !== 'tv') return;
+    if (d.clear) { if (TV_LISTS.picks) { delete TV_LISTS.picks; listKey = null; swapTo('all', 420, true); } return; }
+    const brands = Object.keys(TV_LISTS).filter((b) => b !== 'all' && b !== 'picks');
     const scored = brands.map((b) => ({ brand: b, list: TV_LISTS[b].map((p) => fit(p, d.answers)).sort((x, y) => y.k - x.k) }));
     d.total = scored.reduce((n, b) => n + b.list.length, 0);
     d.best = scored.map((b) => ({ brand: b.brand, ...b.list[0] })).sort((x, y) => y.k - x.k);
-    TV_LISTS.picks = scored.flatMap((b) => b.list).sort((x, y) => y.k - x.k).slice(0, 8).map((f) => f.p);
-    swapTo('picks', d.at);
+    const list = scored.flatMap((b) => b.list).sort((x, y) => y.k - x.k).slice(0, 8).map((f) => f.p);
+    const same = TV_LISTS.picks && listKey === 'picks' && TV_LISTS.picks.length === list.length && TV_LISTS.picks.every((p, i) => p === list[i]);
+    TV_LISTS.picks = list;
+    if (same) return;
+    listKey = null; swapTo('picks', d.live ? 420 : d.at, !!d.live);
   });
   /* Pre-warm the swap lists once the page is idle: measure every list's title cuts
      off-screen (one list per idle slot), so the swap does no layout reads in the
@@ -1144,14 +1170,13 @@ const PP = (() => {
       const n = t.firstElementChild; n.style.opacity = s.card.style.opacity; s.card.replaceWith(n); s.card = n;
     });
   }
-  // the last two chips are phone filters ("Cases & Covers", "Accessories"); TVs get their own
-  const chipT = chips.slice(3).map((ch) => ch.querySelector('.chip__t'));
-  const CHIP_BASE = chipT.map((t) => [t.textContent, t.style.width]);
-  const CHIP_TEXT = { tv: ['Screen Size', 'Smart TV'] };
+  const CHIP_BRANDS = { phone: ['Apple', 'Samsung', 'HUAWEI', 'Smartphones', 'Google', 'Xiaomi'], fitness: ['Fitbit', 'WHOOP', 'Xiaomi', 'HUAWEI', 'Garmin', 'Amazfit'], tv: ['Samsung', 'LG', 'Sony', 'TCL', 'Hisense', 'Xiaomi'] };
+  const plainT = [...plp.querySelectorAll('.chip--plain .chip__t')];
+  const setChipBrands = (c) => plainT.forEach((t, i) => { t.textContent = (CHIP_BRANDS[c] || CHIP_BRANDS.phone)[i] || ''; });
   function setCategory(c) {   // called while the page is hidden, before it opens
     if (c === cat) return;
     cat = c; LISTS = CATS[c]; listKey = 'all';
-    chipT.forEach((t, i) => { const v = CHIP_TEXT[c]; t.textContent = v ? v[i] : CHIP_BASE[i][0]; t.style.width = v ? '' : CHIP_BASE[i][1]; });
+    setChipBrands(c);
     rTimers.forEach(clearTimeout); rTimers = []; plp.classList.remove('is-reloading');
     fill(LISTS.all);
   }
@@ -1354,7 +1379,7 @@ const PP = (() => {
      · trackpad / wheel swipes move 1:1, then page once the gesture pauses
      · each new page plays a selection haptic; the counter follows the page */
   const pager = (() => {
-    const STEP = 214, VIEW = 343;
+    const STEP = 214, VIEW = 351;   // the rail is the panel's width (aligned to the product grid)
     const max = () => Math.max(0, track.scrollWidth - VIEW);
     const pages = () => { const m = max(), out = []; for (let x = 0; x < m - 24; x += STEP) out.push(x); out.push(m); return out; };
     const SPR = { w: (2 * Math.PI) / 0.34, z: 0.74 };
@@ -1586,12 +1611,12 @@ const PP = (() => {
   const tvImg = ([file, k]) => `<img class="rsi__img" src="../assets/tv/${file}.webp" width="${Math.round(TV_W * k)}" height="${Math.round(TV_W * k * 0.615)}" alt="" decoding="async" />`;
 
   /* The roster (one per question page). Rail x runs 0 (first answer in the slot) → X_MIN (last).
-     Geometry, roster coordinates (343 wide, the panel's full width): the slot / the indicator in
-     the CENTRE (x 171), answers 136 apart either side (17 ruler ticks of 8px, a darker mark under each).
+     Geometry, roster coordinates (351 wide, the panel's full width): the slot / the indicator in
+     the CENTRE (x 175), answers 136 apart either side (17 ruler ticks of 8px, a darker mark under each).
      The answer in the slot is full size on a soft peach glow; the others shrink to 70% and fade to
      42% as they leave it (continuous with position) and peek in from the panel edges. One readout
      under the slot names the answer and rolls over (out up, in from below) when it changes. */
-  const RS = { PITCH: 136, TICK: 8, IND: 171, SHRINK: 0.3, FADE: 0.58, RUBBER: 150, W: 11, Z: 0.96 };
+  const RS = { PITCH: 136, TICK: 8, IND: 175, SHRINK: 0.3, FADE: 0.58, RUBBER: 150, W: 11, Z: 0.96 };
   const WAVE = { A: 0.43, SIGMA: 17.5, ATTACK: 0.02, HOLD: 50, DECAY: 100, V_MIN: 20 };
   const TINT = { MAX: 0.92, SIGMA: 12, TRAIL: 14, LEAD: 3, V_FULL: 900 };
   function springFn(w, z, x0, v0) {
@@ -1680,7 +1705,7 @@ const PP = (() => {
         rs.setAttribute('aria-activedescendant', items[i].id);
       } else rs.setAttribute('aria-valuetext', Q.opts[i][0]);
       lines.forEach((l, k) => l.classList.toggle('is-cur', k === i));
-      if (sound) { Sfx.snap(); Haptics.snap(); lastTickAt = performance.now(); }
+      if (sound) { Sfx.snap(); Haptics.snap(); lastTickAt = performance.now(); scheduleLive(); }
     }
     function render(sound = true) {
       paintRead();
@@ -1901,6 +1926,7 @@ const PP = (() => {
   qSkip.addEventListener('click', () => {
     if (busy) return;
     busy = true;
+    clearTimeout(liveT); plp.dispatchEvent(new CustomEvent('plp:personal', { detail: { clear: true } }));
     [qBar, stage, foot].forEach((el) => fadeEl(el, 0, 180));
     later(140, () => {
       hTitle.textContent = CAT[catKey].title; count.textContent = `1 of ${cards.length}`;
@@ -1910,6 +1936,14 @@ const PP = (() => {
       cardsIn(40);
     });
   });
+  /* live PLP: when a control lands on a new answer (after a 420ms pause, so a fast swipe doesn't reload
+     the grid at every stop), the grid re-sorts to the best fits for the answers so far */
+  let liveT = 0;
+  function liveState() { const a = {}; QUESTIONS.forEach((Q, i) => { const k = i === step && slider ? slider.k : answers[Q.key + 'K']; if (k != null && k >= 0) a[Q.key] = Q.opts[k][1]; }); return a; }
+  function scheduleLive() {
+    clearTimeout(liveT);
+    liveT = setTimeout(() => { if (box.classList.contains('is-asking')) plp.dispatchEvent(new CustomEvent('plp:personal', { detail: { answers: liveState(), live: true } })); }, 420);
+  }
   function pickCard({ brand, p, spec, pct }) {
     const b = TV_BRAND[brand], t = p.title;
     const tech = spec.tech === 'QLED' && /qned/i.test(t) ? 'QNED' : spec.tech;   // LG's QNED matches a QLED answer but keeps its name
@@ -1939,6 +1973,7 @@ const PP = (() => {
   const PZ = { STEPS: [0, 680, 1360], FILL_MS: 2000, FOUND_AT: 2060, DONE_AT: 2700 };
   const CHECK = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="#0f8857"/><path class="pz__ck" d="M4.6 8.3l2.2 2.2 4.6-4.8" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function personalize() {
+    clearTimeout(liveT);
     const d = { answers, at: PZ.DONE_AT + 260 };
     plp.dispatchEvent(new CustomEvent('plp:personal', { detail: d }));   // the grid starts shimmering now
     CARDS = (d.best || []).map(pickCard); personal = true;
@@ -2000,6 +2035,7 @@ const PP = (() => {
     });
   }
   function resetAsk() {
+    clearTimeout(liveT);
     ask.getAnimations({ subtree: true }).forEach((x) => x.cancel());
     if (slider) { slider.stop(); slider = null; }
     stage.innerHTML = ''; page = null; busy = false;
@@ -2066,7 +2102,7 @@ const PP = (() => {
   const fadeTo = (el, from, to, ms, delay = 0, easing = OUT, extra) =>
     el.animate([{ opacity: from, ...(extra && extra[0]) }, { opacity: to, ...(extra && extra[1]) }], { duration: ms, delay, easing, fill: 'both' });
   const rel = (el) => { const a = el.getBoundingClientRect(), b = bar.getBoundingClientRect(); return { x: a.left - b.left, y: a.top - b.top, w: a.width, h: a.height }; };
-  const onScreen = (i) => { const r = rel(slots[i]); return r.x < 343 && r.x + r.w > 0; };
+  const onScreen = (i) => { const r = rel(slots[i]); return r.x < 351 && r.x + r.w > 0; };
   // coin pop: SwiftUI-style bouncy spring (response 0.42s, ζ 0.52 → ~15% overshoot), once the panel is mostly closed
   const POP = spr(0.42, 0.52), POP_AT = 150;
 
@@ -2287,7 +2323,7 @@ const Haptics = (() => {
    the same iteration (a clean reload back to Home). */
 (() => {
   const nav = document.getElementById('vswitch'); if (!nav) return;
-  const PATHS = { 1: '/', 2: '/v2/', 3: '/v3/', 4: '/v4/', 5: '/v5/' };
+  const PATHS = { 1: '/', 2: '/v2/', 3: '/v3/', 4: '/v4/', 5: '/v5/', 6: '/v6/', 7: '/v7/' };
   const here = document.documentElement.dataset.variant || '1';
   const want = new URLSearchParams(location.search).get('v');
   if (want && PATHS[want] && want !== here) { location.replace(PATHS[want]); return; }
