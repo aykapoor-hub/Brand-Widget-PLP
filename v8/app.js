@@ -617,6 +617,43 @@ const PP = (() => {
   const chips  = [...plp.querySelectorAll('.chip')];
   const A = '../assets/';
 
+  /* the PLP header on scroll — the "noon App GitFlow" PLP 1:1 (noon-app-skill src/flows/plp/scrollStates.ts =
+     bappzaar HidableView): the search bar block never moves; the marketplace tabs + chips (their measured
+     height h = 117) hide when scrolling down, more than h past where that downward run began, and past y h;
+     they come back when scrolling up more than h from where the upward run began, or above y h. Either way
+     they slide by their own height under the search block on RN's Animated.timing default — 300ms,
+     inOut(ease) with ease = bezier(.42, 0, 1, 1). The products scroll under the header (a spacer of h opens
+     the list) and the pinned TV widget rides up with it (styles.css --plp-hide). */
+  const hidable = (() => {
+    const mps = plp.querySelector('.plp__mps'), els = [mps, plp.querySelector('.plp__tags'), document.getElementById('brandWidget')];
+    const bez = (x1, y1, x2, y2) => {
+      const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx, cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+      const X = (t) => ((ax * t + bx) * t + cx) * t, Y = (t) => ((ay * t + by) * t + cy) * t;
+      return (x) => { let lo = 0, hi = 1, t = x; for (let i = 0; i < 24; i++) { if (X(t) < x) lo = t; else hi = t; t = (lo + hi) / 2; } return Y(t); };
+    };
+    const easeIn = bez(0.42, 0, 1, 1), ease = (t) => (t < 0.5 ? easeIn(t * 2) / 2 : 1 - easeIn((1 - t) * 2) / 2);
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+    let v = 0, raf = 0, hidden = false, prevY = 0, prevDir = 'up', downStart = 0, upStart = 0;
+    const set = (x) => { v = x; els.forEach((e) => e.style.setProperty('--plp-hide', x.toFixed(4))); };
+    const to = (target) => {
+      cancelAnimationFrame(raf);
+      if (reduce.matches) { set(target); return; }
+      const from = v, t0 = performance.now();
+      const f = (now) => { const t = Math.min(1, (now - t0) / 300); set(from + (target - from) * ease(t)); if (t < 1) raf = requestAnimationFrame(f); };
+      raf = requestAnimationFrame(f);
+    };
+    scroll.addEventListener('scroll', () => {
+      if (!plp.classList.contains('is-open')) return;
+      const y = scroll.scrollTop, h = mps.offsetHeight + els[1].offsetHeight || 20, dir = y > prevY ? 'down' : 'up';
+      if (dir === 'down' && prevDir === 'up') downStart = y;
+      if (dir === 'up' && prevDir === 'down') upStart = y;
+      if (!hidden && dir === 'down' && y - downStart > h && y > h) { to(1); hidden = true; }
+      if (hidden && dir === 'up' && (y - upStart < -h || y < h)) { to(0); hidden = false; }
+      prevY = y; prevDir = dir;
+    }, { passive: true });
+    return { reset() { cancelAnimationFrame(raf); hidden = false; prevY = 0; prevDir = 'up'; downStart = upStart = 0; set(0); } };
+  })();
+
   // times are from the end of the suggestions' exit (nothing overlaps it); SKEL_MS is the layer fade
   const T = { SKEL_AT: 0, SKEL_MS: 300, NAV_AT: 224, CHIPS_AT: 480, CARDS_AT: 680, CHIP_DROP: 20, CARD_RISE: 16, SKEL_OUT_AFTER: 353 };
 
@@ -1013,7 +1050,7 @@ const PP = (() => {
     plp.classList.remove('is-open', 'is-loading');
     plp.style.opacity = 0;
     plp.inert = true; plp.setAttribute('aria-hidden', 'true');
-    scroll.scrollTop = 0;
+    scroll.scrollTop = 0; hidable.reset();
     open = false;
   }
 
@@ -1574,13 +1611,14 @@ const PP = (() => {
       <span class="qz__steps" aria-hidden="true">${QUESTIONS.map(() => '<i></i>').join('')}</span>
       <span class="qz__count">1 of ${QUESTIONS.length}</span></div>
     <div class="qz__stage"></div>
+    <div class="qz__tt" aria-live="polite"></div>
     <div class="qz__nav">
       <button class="qz__back qz__arrow" type="button" disabled aria-label="Previous question"><img src="../assets/gf/arrow-left.svg" width="20" height="20" alt="" /></button>
       <button class="qz__skip qz__arrow qz__arrow--next" type="button" aria-label="Next question"><img src="../assets/gf/arrow-left.svg" width="20" height="20" alt="" /></button>
       <button class="qz__apply" type="button" disabled>Apply</button>
     </div>`;
   bar.appendChild(ask);
-  const qBar = ask.querySelector('.qz__top'), qCount = ask.querySelector('.qz__count'), stage = ask.querySelector('.qz__stage');
+  const qBar = ask.querySelector('.qz__top'), qCount = ask.querySelector('.qz__count'), stage = ask.querySelector('.qz__stage'), qTT = ask.querySelector('.qz__tt');
   const qBack = ask.querySelector('.qz__back'), qSkip = ask.querySelector('.qz__skip');
   const fills = [...qBar.querySelectorAll('.qz__steps i')];
   const TV_BRAND = Object.fromEntries(TV_CARDS.map((c) => [c.brand, c]));
@@ -1906,6 +1944,7 @@ const PP = (() => {
       </div>
     </div>`);
     const old = page; page = next; stage.appendChild(next);
+    setTitle(Q.q, dir);
     placeArrows();
     if (slider) slider.stop();
     slider = makeRoster(next, Q, k0, () => {});   // iteration 6: choosing doesn't move on — the › arrow does
@@ -1913,18 +1952,63 @@ const PP = (() => {
        one moves in from PAGE_DX on the other side — but iteration 6 hands over instead of crossfading:
        the old one is gone in 150ms (ease-in) before the new one fades in from 140ms, so two titles /
        TVs / answers never sit on top of each other half-transparent (the "glitch" mid-push) */
-    const dx = dir * PAGE_DX, dy = dir ? 0 : 12;
+    /* iteration 8 — the push carries the question over instead of sliding it away:
+         · the TV morphs: the new question's TV starts at the old one's place and size and moves / scales
+           into its own on one decelerating curve (480ms, .2,0,0,1) while the old TV travels the same
+           path the other way — the two cross-fade in the first 200ms (out-cubic in, in-out out), so it
+           reads as one TV changing, not two swapping
+         · the title and the answer dissolve in place: the old lifts 6 and blurs out (200ms), the new
+           rises from 8 below as its blur clears (520ms move, 340ms fade) — title at 140ms, answer 180ms
+         · the side TVs, the glow and the ruler fade in last (from 130ms, 280ms), sliding 12 from the
+           arrow's side; the rest of the old question just fades (160ms)
+       All of it on the CSS translate / scale / opacity properties (filter: opacity() for the roster's
+       TVs) so the roster's own per-frame transforms and distance fade stay untouched. */
+    const T8 = { MS: 480, MOVE: 'cubic-bezier(.2,0,0,1)', FADE: 'cubic-bezier(.33,1,.68,1)', IO: 'cubic-bezier(.65,0,.35,1)', ROLL: 8, DX: 12 };
+    const tvOf = (pg) => pg && (pg.querySelector('.rsi.is-sel .rsi__img') || pg.querySelector('.rsi--single .scr') || pg.querySelector('.rsi--single .rsi__img'));
+    const oldTv = dir ? tvOf(old) : null, newTv = dir ? tvOf(next) : null;
+    const kOf = (el) => (el.getBoundingClientRect().width / el.offsetWidth) || 1;   // ancestors' scale (the roster's)
     if (old) {
       old.getAnimations().forEach((a) => a.cancel());
-      PP.commit(old, [springAnim(old, 0, 1, (p) => ({ transform: `translateX(${(-dx * p).toFixed(2)}px)` }), PAGE),
-        old.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, easing: 'cubic-bezier(.4,0,1,1)', fill: 'both' })], { opacity: 0 }).then(() => old.remove());
+      PP.commit(old, [old.animate([{ opacity: 1 }, { opacity: 0 }], { duration: dir ? 220 : 120, easing: T8.IO, fill: 'both' })], { opacity: 0 }).then(() => old.remove());
+      if (dir) {
+        const orr = old.querySelector('.rs__read');
+        // the old text dissolves: lifts 6 and blurs 0 → 4px while the old question fades (220ms, in-out
+        // cubic) — no fade of its own, or the two multiply and it vanishes in ~130ms
+        [orr].forEach((el) => el && el.animate([{ translate: '0 0', filter: 'blur(0)' }, { translate: '0 -6px', filter: 'blur(4px)' }], { duration: 240, easing: T8.MOVE, fill: 'forwards' }));
+      }
     }
-    PP.commit(next, [springAnim(next, 0, 1, (p) => ({ transform: `translate(${(dx * (1 - p)).toFixed(2)}px,${(dy * (1 - p)).toFixed(2)}px)` }), PAGE),
-      next.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: dir ? 140 : 80, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'both' })], { opacity: 1, transform: '' });
+    if (dir) {
+      // the TV morph (FLIP between the two TVs' on-screen boxes)
+      if (oldTv && newTv) {
+        const a = oldTv.getBoundingClientRect(), b = newTv.getBoundingClientRect(), kb = kOf(newTv), ka = kOf(oldTv);
+        const dx = (a.left + a.width / 2) - (b.left + b.width / 2), dy = (a.top + a.height / 2) - (b.top + b.height / 2), sc = a.width / b.width;
+        newTv.animate([{ translate: `${dx / kb}px ${dy / kb}px`, scale: sc }, { translate: '0 0', scale: 1 }], { duration: T8.MS, easing: T8.MOVE, fill: 'backwards' });
+        newTv.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: T8.FADE, fill: 'backwards' });
+        oldTv.animate([{ translate: '0 0', scale: 1 }, { translate: `${-dx / ka}px ${-dy / ka}px`, scale: 1 / sc }], { duration: T8.MS, easing: T8.MOVE, fill: 'forwards' });
+      }
+      // title + answer roll in place
+      // the new text resolves as the old one is nearly gone: rises 8 → 0 (520ms decelerating) while a 4px blur
+      // clears and it fades in (340ms, out-cubic) — title at 140ms, the answer under the TV at 180ms
+      [[next.querySelector('.rs__read'), 180]].forEach(([el, delay]) => {
+        if (!el) return;
+        el.animate([{ translate: `0 ${T8.ROLL}px` }, { translate: '0 0' }], { duration: 520, delay, easing: T8.MOVE, fill: 'backwards' });
+        el.animate([{ filter: 'blur(4px)', opacity: 0 }, { filter: 'blur(0)', opacity: 1 }], { duration: 340, delay, easing: T8.FADE, fill: 'backwards' });
+      });
+      // the rest arrives last: side TVs (not the morphing one), the glow, the ruler, its indicator
+      const rest = [...next.querySelectorAll('.rsi:not(.is-sel):not(.rsi--single), .rs__sel, .rs__amb, .rs__ruler, .rs__ind, .rs__dot')];
+      rest.forEach((el) => {
+        const tv = el.classList.contains('rsi');
+        el.animate([{ translate: `${dir * T8.DX}px 0` }, { translate: '0 0' }], { duration: T8.MS, delay: 130, easing: T8.MOVE, fill: 'backwards' });
+        el.animate(tv ? [{ filter: 'opacity(0)' }, { filter: 'opacity(1)' }] : [{ opacity: 0 }, { opacity: 1 }], { duration: 280, delay: 130, easing: T8.FADE, fill: 'backwards' });
+      });
+    } else {
+      PP.commit(next, [next.animate([{ transform: 'translate3d(0,12px,0)' }, { transform: 'none' }], { duration: 460, easing: T8.MOVE, fill: 'both' }),
+        next.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 80, easing: T8.FADE, fill: 'both' })], { opacity: 1, transform: '' });
+    }
     // arrows: ‹ from the second question on, › until the last one
     if (qBack.disabled !== (i === 0)) { qBack.disabled = i === 0; fadeEl(qBack, i === 0 ? 0 : 1); }
     setLast(i === QUESTIONS.length - 1);
-    later(dir ? 300 : 340, () => { busy = false; });
+    later(dir ? 360 : 340, () => { busy = false; });
   }
   /* a choice moves on by itself: the step's segment fills and the next question slides in (the last one
      goes to "Personalizing for you"). A tap moves on 360ms after its answer lands; a swipe waits 800ms
@@ -1943,7 +2027,7 @@ const PP = (() => {
     fill(step, true);
     // the grid shimmers and reloads for the answers so far as the next question lands (iteration 6)
     if (step + 1 < QUESTIONS.length) { clearTimeout(liveT); plp.dispatchEvent(new CustomEvent('plp:personal', { detail: { answers, at: 680, shimmer: true } })); }
-    later(120, () => (step + 1 < QUESTIONS.length ? show(step + 1, 1) : personalize()));   // the push starts while the segment fills
+    later(40, () => (step + 1 < QUESTIONS.length ? show(step + 1, 1) : personalize()));   // the push starts right after the tap (iteration 8: was 120)
   }
   /* iteration 7: an answer chip is a shortcut — tapping it opens that question with its answer on the
      slider; the answer being looked at is kept and the grid reloads (shimmer), as › / ‹ do */
@@ -1953,7 +2037,7 @@ const PP = (() => {
     Haptics.tick(); clearTimeout(autoT);
     keepAndReload();
     busy = true;
-    later(120, () => show(k, k > step ? 1 : -1));
+    later(40, () => show(k, k > step ? 1 : -1));
   });
   qBack.addEventListener('click', () => {
     if (busy || step === 0) return;
@@ -1970,8 +2054,14 @@ const PP = (() => {
   const qActs = qBack.parentElement;
   function setLast(on) {
     if (qSkip.disabled === on) return;
-    qSkip.disabled = on; fadeEl(qSkip, on ? 0 : 1);
-    qApply.disabled = !on; fadeEl(qApply, on ? 1 : 0);
+    qSkip.disabled = on; qApply.disabled = !on;
+    // a hand-over, not a cross-fade: the leaving control is gone in 120ms (in-out cubic), then the arriving
+    // one fades in (200ms out-cubic) while it settles 0.9 → 1 on the move spring
+    const out = on ? qSkip : qApply, inn = on ? qApply : qSkip;
+    fadeEl(out, 0, 120);
+    inn.getAnimations().forEach((a) => a.cancel());
+    PP.commit(inn, [inn.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: 90, easing: 'cubic-bezier(.33,1,.68,1)', fill: 'both' }),
+      springAnim(inn, 0.9, 1, (v) => ({ scale: (+v).toFixed(4) }), spr(0.38, 0.86), 90)], { opacity: 1, scale: '' });
     fitTrack();
     if (!on) setApplied(false);
   }
@@ -1984,16 +2074,19 @@ const PP = (() => {
     qApply.classList.toggle('is-applied', on);
     qApply.innerHTML = on ? '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 7.4l2.6 2.6L11 4.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Applied' : 'Apply';
   }
-  /* Apply → "Personalizing for you" → the widget collapses (iteration 8):
-       · 0      the answer is kept, the grid starts its shimmer; the question, the row and the buttons fade (200)
-       · 120    the beat fades in over the whole panel: the title (Noontree Medium 22, #262626) rising 8 →
-                0 over a soft cool glow that breathes, on a faint dot grid (2px dots, 14 apart, 7% ink) that
-                two very subtle ripples cross from the centre (260px/s, 600ms apart)
-       · 1750   the panel springs 357 → 64 on the morph spring (the card's grey returns), the grid rides up
-                with it (box 366 → 73) and its new cards rise in; the beat lifts away (240) as the collapsed
-                bar fades in — "Your TV matches", the three answers, Edit — success haptic
-     Edit plays it back: the panel opens to the last question, the grid rides down. */
-  const PZ8 = { IN: 120, COLLAPSE_AT: 1750, COL_BAR: 64, COL_H: 73, DOT: 14, SPEED: 260, WAVE: 26 };
+  /* Apply → a full-screen "Personalizing for you" → the widget collapses (iteration 8):
+       · 0     the answer is kept and the grid starts reloading; the bottom nav slides out of frame (move
+               spring); a white layer fades over the PLP below its header — the search bar, marketplace
+               tabs and chips stay — down to the screen's bottom (280ms out-cubic)
+       · the layer: a faint dot grid (2px, 16 apart) that slow, wide, soft ripples keep crossing from
+               the screen's centre (190px/s, every 1.05s), fading toward the edges; a round cool glow
+               breathing behind the one line of text — "Personalizing for you" (Noontree SemiBold 20,
+               ink, a light sweep crossing it every 1.6s) — centred on the screen
+       · 320   hidden under it, the widget becomes the collapsed bar (64) and the grid sits up under it
+       · 2080  the matched cards are already in place under the layer
+       · 2600  the reveal (see below)
+     Edit (on the collapsed bar) opens the widget back on the last question. */
+  const PZ8 = { HOLD: 2600, UNDER: 320, COL_BAR: 64, COL_H: 73, DOT: 16, SPEED: 190, WAVE: 64, EVERY: 1.05, REACH: 620 };
   const qd = node(`<div class="qd">
       <span class="qd__ic" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="9.5" rx="1.6" stroke="#1d2539" stroke-width="1.5"/><path d="M6.5 15h5" stroke="#1d2539" stroke-width="1.5" stroke-linecap="round"/></svg></span>
       <span class="qd__txt"><b class="qd__t">Your TV matches</b><span class="qd__s"></span></span>
@@ -2001,59 +2094,165 @@ const PP = (() => {
     </div>`);
   bar.appendChild(qd);
   const qdSub = qd.querySelector('.qd__s'), qdEdit = qd.querySelector('.qd__edit');
-  function ripple(canvas, ms) {
-    const W = 351, Hh = ASK_BAR, dpr = Math.min(3, window.devicePixelRatio || 1), cx = W / 2, cy = 150, t0 = performance.now();
-    canvas.width = W * dpr; canvas.height = Hh * dpr; const g = canvas.getContext('2d'); g.scale(dpr, dpr);
-    const dots = []; for (let y = PZ8.DOT / 2; y < Hh; y += PZ8.DOT) for (let x = PZ8.DOT / 2 + 3.5; x < W; x += PZ8.DOT) dots.push([x, y, Math.hypot(x - cx, y - cy)]);
+  const scrollEl = document.getElementById('plpScroll'), navEl = document.getElementById('plpNav');
+  function ripple(canvas, W, Hh, cx, cy, ms) {
+    const dpr = Math.min(3, window.devicePixelRatio || 1), t0 = performance.now(), still = PP.reduce.matches;
+    canvas.width = W * dpr; canvas.height = Hh * dpr; const g = canvas.getContext('2d'); g.scale(dpr, dpr); g.fillStyle = '#1d2539';
+    const dots = []; for (let y = PZ8.DOT / 2; y < Hh; y += PZ8.DOT) for (let x = PZ8.DOT / 2 - 0.5; x < W; x += PZ8.DOT) { const d = Math.hypot(x - cx, y - cy), v = Math.max(0, 1 - d / 420); dots.push([x, y, d, v * v * (3 - 2 * v)]); }   // an even grid, fading out toward the edges
     const frame = (now) => {
       const t = (now - t0) / 1000; g.clearRect(0, 0, W, Hh);
-      for (const [x, y, d] of dots) {
+      for (const [x, y, d, near] of dots) {
         let k = 0;
-        for (const s0 of [0.15, 0.75]) { const R = (t - s0) * PZ8.SPEED; if (R > 0) k = Math.max(k, Math.exp(-(((d - R) / PZ8.WAVE) ** 2)) * Math.max(0, 1 - R / 420)); }
-        const fade = Math.min(1, d < 40 ? 0 : (d - 40) / 60) * Math.max(0, 1 - d / 330);   // clear behind the title, soft at the edges
-        g.globalAlpha = (0.07 + 0.16 * k) * fade; g.fillStyle = '#1d2539';
-        g.beginPath(); g.arc(x, y, 1 + 0.6 * k, 0, Math.PI * 2); g.fill();
+        // slow, wide, soft waves: each eases in as it leaves the centre (smoothstep over its first 90px) and
+        // fades as it travels (smoothstep to REACH), summed so overlapping waves blend instead of popping
+        if (!still) for (let s0 = 0; s0 < t; s0 += PZ8.EVERY) {
+          const R = (t - s0) * PZ8.SPEED; if (R > PZ8.REACH) continue;
+          const a = Math.min(1, R / 90), b = 1 - R / PZ8.REACH;
+          k += Math.exp(-(((d - R) / PZ8.WAVE) ** 2)) * a * a * (3 - 2 * a) * b * b * (3 - 2 * b);
+        }
+        k = Math.min(1, k);
+        g.globalAlpha = (0.06 + 0.12 * k) * near;
+        g.beginPath(); g.arc(x, y, 1 + 0.35 * k, 0, Math.PI * 2); g.fill();
       }
-      if (now - t0 < ms) requestAnimationFrame(frame);
+      if (now - t0 < ms && canvas.isConnected) requestAnimationFrame(frame);
     };
     requestAnimationFrame(frame);
   }
+  const navMove = (from, to, delay = 0) => PP.commit(navEl, [springAnim(navEl, from, to, (v) => ({ transform: `translate3d(0,${(+v).toFixed(2)}px,0)` }), MORPH, delay)], { transform: to ? `translate3d(0,${to}px,0)` : 'none' });   // 'none' = the PLP nav's risen resting state (its CSS start is +88)
   qApply.addEventListener('click', () => {
     if (busy || !page || !slider || !box.classList.contains('is-asking')) return;
     busy = true; Haptics.tick();
     const Q = QUESTIONS[step], j = slider.k, [label, val] = Q.opts[j];
     answers[Q.key] = val; answers[Q.key + 'K'] = j; answers[Q.key + 'Label'] = val === null ? 'Any picture' : label;
     clearTimeout(liveT);
-    plp.dispatchEvent(new CustomEvent('plp:personal', { detail: { answers, at: PZ8.COLLAPSE_AT + 140, shimmer: true } }));
-    [qBar, stage, qActs].forEach((el) => fadeEl(el, 0, 200));
-    const pz = node(`<div class="pz8" aria-live="polite"><canvas class="pz8__dots" aria-hidden="true"></canvas><i class="pz8__glow" aria-hidden="true"></i><p class="pz8__t">Personalizing for you</p></div>`);
-    ask.appendChild(pz);
-    const title = pz.querySelector('.pz8__t');
-    PP.commit(pz, [pz.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 320, delay: PZ8.IN, easing: EASE_OUT, fill: 'both' })], { opacity: 1 });
-    PP.commit(title, [title.animate([{ transform: 'translateY(8px)' }, { transform: 'none' }], { duration: 520, delay: PZ8.IN, easing: EASE_OUT, fill: 'both' })], { transform: '' });
-    ripple(pz.querySelector('canvas'), PZ8.COLLAPSE_AT + 300);
+    plp.dispatchEvent(new CustomEvent('plp:personal', { detail: { answers, at: PZ8.HOLD + 720, shimmer: true } }));   // skeletons under the layer; the cards stagger in once it has lifted
     qdSub.textContent = QUESTIONS.map((q) => SHORT[q.key][answers[q.key + 'K'] != null ? answers[q.key + 'K'] : q.def]).join(' · ');
-    later(PZ8.COLLAPSE_AT, () => {
-      box.classList.add('is-handoff', 'is-done'); box.classList.remove('is-asking');
-      PP.commit(bar, [springAnim(bar, ASK_BAR, PZ8.COL_BAR, (v) => ({ height: `${(+v).toFixed(2)}px` }), MORPH)], { height: PZ8.COL_BAR + 'px' });
-      pushGrid(ASK_H, PZ8.COL_H, (el, a, b, fmt) => springAnim(el, a, b, fmt, MORPH));
-      PP.commit(pz, [pz.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 240, easing: OUT, fill: 'both' })], { opacity: 0 });
-      PP.commit(qd, [qd.animate([{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }], { duration: 300, delay: 160, easing: EASE_OUT, fill: 'both' })], { opacity: 1, transform: '' });
-      Haptics.success();
-      later(320, () => { pz.remove(); box.classList.remove('is-handoff'); busy = false; });
+    qd.querySelector('.qd__t').textContent = 'Your TV matches'; scrollFolded = false;
+    setNav(true);
+    const pz = node(`<div class="pzf" aria-live="polite">
+        <canvas class="pzf__dots" aria-hidden="true"></canvas><i class="pzf__glow" aria-hidden="true"></i>
+        <p class="pzf__t" aria-label="Personalizing for you">${[...'Personalizing for you'].map((ch, i) => `<span class="pzf__ch" style="--i:${i}" aria-hidden="true">${ch === ' ' ? '&nbsp;' : ch}</span>`).join('')}</p>
+      </div>`);
+    const tg = plp.querySelector('.plp__tags'); pz.style.top = `${tg.offsetTop + tg.offsetHeight}px`;   // under the header: search bar, marketplace tabs and chips stay
+    plp.appendChild(pz);
+    const W = pz.offsetWidth, Hh = pz.offsetHeight, cy = Hh / 2;   // the centre of the empty space (the layer, under the chips)
+    pz.style.setProperty('--cy', `${cy}px`);
+    ripple(pz.querySelector('canvas'), W, Hh, W / 2, cy, PZ8.HOLD + 600);
+    const title = pz.querySelector('.pzf__t');
+    PP.commit(pz, [pz.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 280, easing: 'cubic-bezier(.33,1,.68,1)', fill: 'both' })], { opacity: 1 });
+    /* the line runs in letter by letter (left → right, 14ms apart from 100ms): each letter rises 8 → 0 and
+       sharpens (blur 4 → 0) on one decelerating curve (360ms) as it fades in (filter: opacity()) — all in
+       by ~0.75s; then the CSS letter run takes over (styles.css .pzf__ch) */
+    const chars = [...title.querySelectorAll('.pzf__ch')];
+    title.style.opacity = 1;
+    chars.forEach((c, i) => c.animate([{ translate: '0 8px', filter: 'blur(4px) opacity(0)' }, { translate: '0 0', filter: 'blur(0) opacity(1)' }],
+      { duration: 360, delay: 100 + i * 14, easing: 'cubic-bezier(.2,0,0,1)', fill: 'backwards' }));
+    // hidden under the layer: the widget becomes the collapsed bar, the grid sits up under it
+    later(PZ8.UNDER, () => {
+      [qBar, stage, qActs, qTT].forEach((el) => { el.getAnimations().forEach((a) => a.cancel()); el.style.opacity = 0; });
+      bar.style.transition = 'none'; box.classList.add('is-done'); box.classList.remove('is-asking');
+      bar.getAnimations().forEach((a) => a.cancel()); bar.style.height = PZ8.COL_BAR + 'px';
+      grid.getAnimations().forEach((a) => a.cancel()); grid.style.transform = ''; box.style.height = PZ8.COL_H + 'px';
+      qd.getAnimations().forEach((a) => a.cancel()); qd.style.opacity = 1;
+      void bar.offsetWidth; bar.style.transition = '';
+    });
+    /* the exit and the reveal, overlapped into one breath:
+         · 2600  the letters run out the way they came (left → right, 7ms apart): each lifts 6 and fades
+                 (220ms, in-out cubic — filter: opacity(), the wave owns opacity); the glow and the dot
+                 grid fade with them (360ms) — so nothing is left on the white but white
+         · 2870  the white fades away (480ms, in-out cubic) as the page under it settles: the collapsed bar
+                 rises 12 → 0 on one decelerating curve (600ms); the grid's skeletons stay still (sliding
+                 the whole grid while its shimmers run re-rasterised it — a 500ms frame); the nav rides
+                 back in on the move spring
+         · 3320  the matched cards rise in over their skeletons, staggered (the PLP's own swap reveal) */
+    later(PZ8.HOLD, () => {
+      const EASE = 'cubic-bezier(.2,0,0,1)', IO = 'cubic-bezier(.65,0,.35,1)', glow = pz.querySelector('.pzf__glow'), dots = pz.querySelector('.pzf__dots');
+      chars.forEach((c, i) => c.animate([{ translate: '0 0', filter: 'opacity(1)' }, { translate: '0 -6px', filter: 'opacity(0)' }], { duration: 220, delay: i * 7, easing: IO, fill: 'forwards' }));
+      [glow, dots].forEach((el) => el.animate([{ filter: 'opacity(1)' }, { filter: 'opacity(0)' }], { duration: 360, easing: IO, fill: 'forwards' }));
+      later(270, () => {
+        PP.commit(pz, [pz.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 480, easing: IO, fill: 'both' })], { opacity: 0 });
+        [bar].forEach((el) => { el.getAnimations().filter((x) => x.effect && x.effect.getKeyframes().some((k) => k.transform)).forEach((x) => x.cancel());
+          PP.commit(el, [el.animate([{ transform: 'translate3d(0,12px,0)' }, { transform: 'none' }], { duration: 600, easing: EASE, fill: 'both' })], { transform: '' }); });
+        setNav(false); Haptics.success();
+        later(500, () => { pz.remove(); busy = false; });
+      });
     });
   });
-  // Edit: back to the last question — the bar opens to the asking panel and the grid rides down
+  /* Edit — an Apple-style expand back to the last question:
+       · the collapsed bar dissolves: it eases to 97% with a 4px blur as it fades (200ms, in-out cubic)
+       · the panel springs open 64 → 357 (soft, no bounce: response 0.5, ζ 0.92) and the grid rides
+         down on the same spring; the card's grey leaves in the first 140ms
+       · the question materialises from the top down, 45ms apart from 110ms — title → TVs (+ glow) →
+         answer → ruler → the answer track and the buttons — each settling in from 96% and 10px below
+         on one decelerating curve (560ms, .2,0,0,1) while a 6px blur clears and it fades in (380ms,
+         out-cubic). CSS scale / translate / filter (opacity via filter on the roster's TVs) so the
+         roster's own transforms and distance fade stay untouched. */
+  const EXPAND = spr(0.5, 0.92);
+  /* Edit while the bar is pinned over a scrolled grid: glide back to the top first, then open (the scroll
+     listener opens it on arrival) — opening in place would leave the question under the products */
+  let editPending = false;
   qdEdit.addEventListener('click', () => {
     if (busy || !box.classList.contains('is-done')) return;
-    busy = true; Haptics.tick();
-    PP.commit(qd, [qd.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, easing: OUT, fill: 'both' })], { opacity: 0 });
-    box.classList.remove('is-done'); box.classList.add('is-asking');
-    PP.commit(bar, [springAnim(bar, PZ8.COL_BAR, ASK_BAR, (v) => ({ height: `${(+v).toFixed(2)}px` }), MORPH)], { height: ASK_BAR + 'px' });
-    pushGrid(PZ8.COL_H, ASK_H, (el, a, b, fmt) => springAnim(el, a, b, fmt, MORPH));
-    [qBar, stage, qActs].forEach((el) => PP.commit(el, [el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 160, easing: EASE_OUT, fill: 'both' })], { opacity: 1 }));
-    later(460, () => { busy = false; });
+    Haptics.tick();
+    if (scrollEl.scrollTop > 2) { editPending = true; scrollEl.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    expandWidget();
   });
+  function expandWidget() {
+    if (busy || !box.classList.contains('is-done')) return;
+    busy = true; scrollFolded = false;
+    PP.commit(qd, [qd.animate([{ opacity: 1, scale: 1, filter: 'blur(0)' }, { opacity: 0, scale: 0.97, filter: 'blur(4px)' }], { duration: 200, easing: 'cubic-bezier(.65,0,.35,1)', fill: 'both' })], { opacity: 0 });
+    box.classList.remove('is-done'); box.classList.add('is-asking');
+    PP.commit(bar, [springAnim(bar, PZ8.COL_BAR, ASK_BAR, (v) => ({ height: `${(+v).toFixed(2)}px` }), EXPAND)], { height: ASK_BAR + 'px' });
+    pushGrid(PZ8.COL_H, ASK_H, (el, a, b, fmt) => springAnim(el, a, b, fmt, EXPAND));
+    [qBar, stage, qActs, qTT].forEach((el) => { el.getAnimations().forEach((x) => x.cancel()); el.style.opacity = ''; });
+    const pg = page, layers = pg ? [[qTT], [...pg.querySelectorAll('.rsi, .rs__sel, .rs__amb')], [pg.querySelector('.rs__read')],
+      [...pg.querySelectorAll('.rs__ruler, .rs__ind, .rs__dot')], [qBar, qActs]] : [[qBar, qActs]];
+    layers.forEach((els, k) => els.filter(Boolean).forEach((el) => {
+      const delay = 110 + k * 45, tv = el.classList.contains('rsi');
+      el.animate([{ scale: 0.96, translate: '0 10px' }, { scale: 1, translate: '0 0' }], { duration: 560, delay, easing: 'cubic-bezier(.2,0,0,1)', fill: 'backwards' });
+      el.animate(tv ? [{ filter: 'blur(6px) opacity(0)' }, { filter: 'blur(0) opacity(1)' }] : [{ filter: 'blur(6px)', opacity: 0 }, { filter: 'blur(0)', opacity: 1 }], { duration: 380, delay, easing: 'cubic-bezier(.33,1,.68,1)', fill: 'backwards' });
+    }));
+    later(560, () => { busy = false; });
+  }
+  /* scroll (iteration 8): the PLP reads like an iOS list —
+       · scrolling the products up past 10px folds the asking widget into its collapsed bar ("Find your
+         TV" + the answers so far + Edit; after Apply it already is the "Your TV matches" bar) on the
+         morph spring, the grid riding up with it, and the bottom nav slides down out of frame
+       · scrolling back down brings the nav back; reaching the top unfolds a widget that the scroll
+         folded (not one that Apply collapsed) back onto the question it was on
+     Direction is judged on ≥ 6px of travel so a jittery finger doesn't flip it. */
+  let scrollFolded = false, navHidden = false, lastY = 0, travel = 0;
+  const qdTitle = qd.querySelector('.qd__t');
+  function foldWidget() {
+    if (busy || !box.classList.contains('is-asking') || !page || !slider) return;
+    busy = true; scrollFolded = true;
+    const k = step, cur = slider.k;
+    qdTitle.textContent = 'Find your TV';
+    qdSub.textContent = QUESTIONS.map((q, i) => (i === k ? SHORT[q.key][cur] : answers[q.key + 'K'] != null ? SHORT[q.key][answers[q.key + 'K']] : null)).filter(Boolean).join(' · ');
+    answers[QUESTIONS[k].key + 'K'] = cur;   // keep where this slider was
+    [qBar, stage, qActs, qTT].forEach((el) => fadeEl(el, 0, 160));
+    box.classList.add('is-done'); box.classList.remove('is-asking');
+    PP.commit(bar, [springAnim(bar, ASK_BAR, PZ8.COL_BAR, (v) => ({ height: `${(+v).toFixed(2)}px` }), MORPH)], { height: PZ8.COL_BAR + 'px' });
+    pushGrid(ASK_H, PZ8.COL_H, (el, a, b, fmt) => springAnim(el, a, b, fmt, MORPH));
+    qd.getAnimations().forEach((x) => x.cancel());
+    PP.commit(qd, [qd.animate([{ opacity: 0, translate: '0 4px' }, { opacity: 1, translate: '0 0' }], { duration: 280, delay: 140, easing: 'cubic-bezier(.33,1,.68,1)', fill: 'both' })], { opacity: 1 });
+    later(460, () => { busy = false; });
+  }
+  function setNav(hide) {
+    if (navHidden === hide) return;
+    navHidden = hide;
+    const y = new DOMMatrix(getComputedStyle(navEl).transform).m42;
+    navEl.getAnimations().forEach((x) => x.cancel());
+    navMove(y, hide ? 110 : 0);
+  }
+  scrollEl.addEventListener('scroll', () => {
+    if (catKey !== 'tv' || !plp.classList.contains('is-open') || document.querySelector('.pzf')) { lastY = scrollEl.scrollTop; return; }
+    const y = scrollEl.scrollTop, d = y - lastY; lastY = y;
+    travel = Math.sign(d) === Math.sign(travel) ? travel + d : d;
+    if (travel > 6 && y > 10) { setNav(true); if (box.classList.contains('is-asking')) foldWidget(); }
+    else if (travel < -6) { setNav(false); }
+    if (y <= 2 && (scrollFolded || editPending) && box.classList.contains('is-done')) { editPending = false; expandWidget(); }
+  }, { passive: true });
   /* the arrows sit at the right end of the row under the ruler (where Back | Skip were): › flush with
      the content's right edge (ask x 329), ‹ 8px to its left; each keeps its place when the other hides.
      Placed with \`left\`, not a transform: the press scale would scale a translate too and slide the
@@ -2073,10 +2272,30 @@ const PP = (() => {
       const text = k !== step && kAns != null ? SHORT[Q.key][kAns] : '';   // before or after the current one (after: kept on ‹)
       pill.classList.toggle('is-chip', !!text);
       if (!text) { if (pill.textContent) pill.textContent = ''; pill.style.width = ''; return; }
-      if (pill.textContent !== text) pill.innerHTML = `<b>${text}</b>`;
+      if (pill.textContent !== text) { pill.innerHTML = `<b>${text}</b>`; const t = pill.firstChild; t.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: 80, easing: 'cubic-bezier(.33,1,.68,1)', fill: 'backwards' }); }   // the text fades in as the chip widens
       pill.style.width = `${Math.ceil(pill.firstChild.getBoundingClientRect().width / k0)}px`;
     });
     fitTrack();
+  }
+  /* the question's title is ONE shared line above the questions (iteration 8), so a question change rolls
+     it like a ticker inside a soft-edged mask instead of fading it with the page: the old title rolls up and
+     out (28px, 460ms decelerating, fading + a 2px blur), the new one rolls up from below into its place
+     (500ms, +40ms, sharpening as it fades in) — ‹ rolls the other way. The page keeps an invisible copy
+     for its layout. */
+  function setTitle(text, dir) {
+    const cur = qTT.querySelector('.qz__ttl:not(.is-out)');
+    if (cur && cur.textContent === text) return;
+    const line = node(`<p class="qz__ttl">${text}</p>`); qTT.appendChild(line);
+    const EASE = 'cubic-bezier(.2,0,0,1)', D = 28 * (dir < 0 ? -1 : 1);
+    if (!cur || !dir) {
+      if (cur) cur.remove();
+      line.animate([{ translate: '0 12px', opacity: 0 }, { translate: '0 0', opacity: 1 }], { duration: 460, delay: 80, easing: EASE, fill: 'backwards' });
+      return;
+    }
+    cur.classList.add('is-out');
+    cur.getAnimations().forEach((a) => a.cancel());
+    cur.animate([{ translate: '0 0', opacity: 1, filter: 'blur(0)' }, { translate: `0 ${-D}px`, opacity: 0, filter: 'blur(2px)' }], { duration: 460, easing: EASE, fill: 'forwards' }).finished.then(() => cur.remove()).catch(() => {});
+    line.animate([{ translate: `0 ${D}px`, opacity: 0, filter: 'blur(2px)' }, { translate: '0 0', opacity: 1, filter: 'blur(0)' }], { duration: 500, delay: 40, easing: EASE, fill: 'backwards' });
   }
   const ARROW = { W: 36, GAP: 8, RIGHT: 329, MID: 171.5 };   // MID: the row's centre (ask x)
   // on the last question (no ›) Apply takes the ›'s place and the ‹ sits 8 to its left
@@ -2120,7 +2339,7 @@ const PP = (() => {
     cards.forEach((c) => { c.style.opacity = 0; });
     hTitle.textContent = 'Find your TV';
     fills.forEach((f) => f.classList.remove('is-done', 'is-cur'));
-    [qBar, stage, qBack, qActs].forEach((el) => { el.getAnimations().forEach((a) => a.cancel()); el.style.opacity = ''; el.style.transform = ''; });
+    [qBar, stage, qBack, qActs, qTT].forEach((el) => { el.getAnimations().forEach((a) => a.cancel()); el.style.opacity = ''; el.style.transform = ''; }); qTT.innerHTML = '';
     qBack.disabled = true; qSkip.disabled = false; qSkip.getAnimations().forEach((x) => x.cancel()); qSkip.style.opacity = ''; qApply.disabled = true; qApply.getAnimations().forEach((x) => x.cancel()); qApply.style.opacity = ''; setApplied(false); qBar.classList.remove('is-last');
     show(0, 0);
   }
@@ -2138,11 +2357,11 @@ const PP = (() => {
     clearTimeout(liveT);
     ask.getAnimations({ subtree: true }).forEach((x) => x.cancel());
     if (slider) { slider.stop(); slider = null; }
-    stage.innerHTML = ''; page = null; busy = false;
+    stage.innerHTML = ''; qTT.innerHTML = ''; page = null; busy = false;
     ask.querySelectorAll('.pz').forEach((x) => x.remove());
     box.classList.remove('is-asking', 'is-handoff', 'is-done');
     qd.getAnimations().forEach((x) => x.cancel()); qd.style.opacity = '';
-    ask.querySelectorAll('.pz8').forEach((x) => x.remove());
+    document.querySelectorAll('.pzf').forEach((x) => x.remove()); navEl.getAnimations().forEach((x) => x.cancel()); navHidden = false; scrollFolded = false; editPending = false; lastY = 0; travel = 0;
     if (personal) { personal = false; CARDS = CAT[catKey].cards; buildTrack(); }
     hTitle.textContent = CAT[catKey].title;
   }
