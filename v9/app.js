@@ -2091,17 +2091,16 @@ const PP = (() => {
   /* View results: no in-between beat and no picks rail. One readable sequence, cause before effect:
        t = 0     the old products dissolve into their shimmering skeletons (plp:results → swapTo) and the
                  picker's contents fade
-       t = 0     the panel folds to its summary on the select morph's spring (settled by ~450ms): the title
-                 says "Updating results…", each answer pops in as a pill under it, 50ms apart, wrapping to
-                 a second row rather than cropping (the panel is as tall as its pills)
+       t = 0     the panel folds to a 64px summary on the select morph's spring (settled by ~450ms) and turns
+                 grey: the results deck on the left (the slot's TV flies into its front card), "Your TV matches"
+                 with the answers under it, Edit on the right
        t = 820   the matches rise into the grid, staggered, once the fold has settled
-       t = 1180  the title becomes "Showing N results", with the cards landing
-     A pill opens its question; Edit opens the one the picker was left on. Answers are kept either way. */
-  const RESULTS_AT = 820, COUNTED_AT = 1180;
-  let TV_SUM = 82, H_SUM = 104;   // set per fold: the panel (pills top 42 + their rows + 14 + the 2px border), the box (12 + panel + 12 gap − the grid's 2px top padding)
-  const sum = node(`<div class="tvs" aria-hidden="true"><span class="tvs__tv"></span><p class="tvs__title" aria-live="polite"></p><button class="tvs__edit" type="button">Edit</button><div class="tvs__pills"></div></div>`);
+     Edit opens the question the picker was left on, answers kept. */
+  const RESULTS_AT = 820;
+  const TV_SUM = 66, H_SUM = 12 + TV_SUM + 12 - 2;   // the panel (64 + its 2px border), the box (12 + panel + 12 gap − the grid's 2px top padding)
+  const sum = node(`<div class="tvs" aria-hidden="true"><span class="tvs__tv"></span><p class="tvs__title">Your TV matches</p><p class="tvs__line"></p><button class="tvs__edit" type="button">Edit</button></div>`);
   bar.appendChild(sum);
-  const sumPills = sum.querySelector('.tvs__pills'), sumSub = sum.querySelector('.tvs__title'), sumEdit = sum.querySelector('.tvs__edit'), sumTv = sum.querySelector('.tvs__tv');
+  const sumTitle = sum.querySelector('.tvs__title'), sumLine = sum.querySelector('.tvs__line'), sumEdit = sum.querySelector('.tvs__edit'), sumTv = sum.querySelector('.tvs__tv');
   /* the thumbnail: the top three results as a small deck of TV-shaped cards (the best match in front, the next two
      peeking above it), so the row shows real products; it returns the front card, which the slot's TV flies into.
      With no results it falls back to the TV you built (the chosen display type's picture on the set). */
@@ -2129,61 +2128,45 @@ const PP = (() => {
   }
   let folded = false;
   function fold() {
-    const n = total(), picked = QUESTIONS.map((Q, i) => ({ i, label: pick(i) == null ? null : Q.opts[pick(i)][0].trim() })).filter((x) => x.label);
-    sumPills.innerHTML = (picked.length ? picked : [{ i: 0, label: 'All TVs' }]).map((x) => `<button class="tvs__pill" type="button" data-k="${x.i}">${x.label}</button>`).join('');
-    sumSub.textContent = 'Updating results…';
+    const picked = QUESTIONS.map((Q, i) => (pick(i) == null ? null : Q.opts[pick(i)][0].trim())).filter(Boolean);
+    sumLine.textContent = picked.length ? picked.join(' · ') : 'All Samsung TVs';
     const list = window.TV_DATA.filter(matches).slice(0, 8), thumb = paintThumb(list);
-    TV_SUM = 42 + sumPills.offsetHeight + 14 + 2; H_SUM = 12 + TV_SUM + 12 - 2;
-    sumTv.style.top = `${Math.round((TV_SUM - 2 - TILE) / 2)}px`;   // the deck and Edit sit centred on the title + pills block
-    sumEdit.style.top = `${Math.round((TV_SUM - 2 - 32) / 2)}px`;
     folded = true; box.classList.add('is-summary'); sum.removeAttribute('aria-hidden');
     list.forEach((p) => { const im = new Image(); im.decoding = 'async'; im.src = `${NOON}${p.img}.jpg?width=400`; });   // photos load during the fold, not after the cards rise
     plp.dispatchEvent(new CustomEvent('plp:results', { detail: { list, at: RESULTS_AT } }));   // skeletons now, the matches once the fold has settled
-    // the set in the slot flies down into the thumbnail (the same shared-element move as between questions)
     const flown = !PP.reduce.matches && !!page && !!thumb.classList.contains('tvs__p');
     stackIn(PP.reduce.matches ? 0 : 360, flown);   // first: the front card must be showing when the flyer clones it; the cards behind rise once it has landed
     if (!PP.reduce.matches && page) fly(shared(page), thumb, 1, flown);
     [qBar, stage, foot].forEach((el) => fadeEl(el, 0, 140));
     pushGrid(H, H_SUM, (el, a, b, fmt) => springAnim(el, a, b, fmt, MORPH));
     PP.commit(bar, [springAnim(bar, BAR, TV_SUM, (v) => ({ height: `${(+v).toFixed(2)}px` }), MORPH)], { height: TV_SUM + 'px' });
-    [...sumPills.children].forEach((el, k) => PP.commit(el, [springAnim(el, 0, 1, (p) => ({ transform: `scale(${(0.86 + 0.14 * p).toFixed(4)})` }), POP, 160 + k * 50), fadeTo(el, 0, 1, 160, 160 + k * 50, OUT)], { opacity: 1, transform: '' }));
-    PP.commit(sumSub, [fadeTo(sumSub, 0, 1, 220, 220, OUT)], { opacity: 1 });
+    [sumTitle, sumLine].forEach((el, k) => PP.commit(el, [fadeTo(el, 0, 1, 260, 180 + k * 50, OUT, [{ transform: 'translateY(4px)' }, { transform: 'none' }])], { opacity: 1, transform: '' }));
     PP.commit(sumTv, [fadeTo(sumTv, 0, 1, 220, 60, OUT)], { opacity: 1 });
     PP.commit(sumEdit, [fadeTo(sumEdit, 0, 1, 260, 200, OUT, [{ transform: 'translateX(6px)' }, { transform: 'none' }])], { opacity: 1, transform: '' });
     later(160, () => Haptics.soft());
-    later(COUNTED_AT, () => {   // the count arrives with the cards
-      if (!folded) return;
-      PP.commit(sumSub, [sumSub.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, easing: OUT, fill: 'both' })], { opacity: 0 }).then(() => {
-        if (!folded) return;
-        sumSub.textContent = `Showing ${n} result${n === 1 ? '' : 's'}`;
-        PP.commit(sumSub, [fadeTo(sumSub, 0, 1, 200, 0, OUT, [{ transform: 'translateY(3px)' }, { transform: 'none' }])], { opacity: 1, transform: '' });
-      });
-    });
     later(460, () => { busy = false; });
   }
-  function unfold(k = step) {
+  function unfold() {
     if (!folded || busy) return;
     busy = true; folded = false; sum.setAttribute('aria-hidden', 'true');
-    // the thumbnail flies back up into the picker's slot as it reopens
+    // the front card flies back up into the picker's slot as it reopens
     const back = page && shared(page), thumb = sumTv.firstElementChild;
     if (back && thumb && !PP.reduce.matches) fly(thumb, back, -1); else if (back) back.style.visibility = '';
-    [...sumPills.children, sumSub, sumEdit, sumTv].forEach((el) => PP.commit(el, [fadeTo(el, 1, 0, 120, 0, OUT)], { opacity: 0 }));
+    [sumTitle, sumLine, sumEdit, sumTv].forEach((el) => PP.commit(el, [fadeTo(el, 1, 0, 120, 0, OUT)], { opacity: 0 }));
     pushGrid(H_SUM, H, (el, a, b, fmt) => springAnim(el, a, b, fmt, MORPH));
     PP.commit(bar, [springAnim(bar, TV_SUM, BAR, (v) => ({ height: `${(+v).toFixed(2)}px` }), MORPH)], { height: '' });
     box.classList.remove('is-summary');
     [qBar, stage, foot].forEach((el, n) => PP.commit(el, [fadeTo(el, 0, 1, 260, 120 + n * 40, OUT)], { opacity: 1 }));
     later(220, () => Haptics.soft());
-    later(420, () => { busy = false; if (k !== step) show(k, k > step ? 1 : -1); });   // a pill opens its own question
+    later(420, () => { busy = false; });
   }
-  sumEdit.addEventListener('click', () => unfold());
-  sumPills.addEventListener('click', (e) => { const p = e.target.closest('.tvs__pill'); if (p) unfold(+p.dataset.k); });
+  sumEdit.addEventListener('click', unfold);
   function resetAsk() {
     ask.getAnimations({ subtree: true }).forEach((x) => x.cancel());
     if (slider) { slider.stop(); slider = null; }
     stage.innerHTML = ''; page = null; busy = false;
     box.classList.remove('is-asking', 'is-summary'); folded = false; sum.setAttribute('aria-hidden', 'true');
-    sumPills.innerHTML = '';
-    [sumSub, sumEdit, sumTv, qBar, stage, foot].forEach((el) => { el.getAnimations().forEach((a) => a.cancel()); el.style.opacity = ''; el.style.transform = ''; });
+    [sumTitle, sumLine, sumEdit, sumTv, qBar, stage, foot].forEach((el) => { el.getAnimations().forEach((a) => a.cancel()); el.style.opacity = ''; el.style.transform = ''; });
     hTitle.textContent = CAT[catKey].title;
   }
   const fixed = [box, bar, head, hTitle, count, sCoin, sTitle, sSub, clear];
