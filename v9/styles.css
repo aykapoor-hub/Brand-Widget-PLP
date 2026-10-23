@@ -1020,17 +1020,16 @@ img.contain { object-fit: contain; }
 .rs__ind { position: absolute; left: 173px; top: 205px; width: 2px; height: 17px; border-radius: 41px;
   background: linear-gradient(to top, rgba(193,24,100,.4), rgba(207,103,81,.4)), #fff; transform-origin: 50% 100%; will-change: transform; }
 .rs__dot { position: absolute; left: 172px; top: 198px; width: 4px; height: 4px; }
-/* footer (415:41346, y 361 + 20): Skip (Next once the slider has moved) on the left, the live "View N TVs" on the right */
-.qz__foot { position: absolute; left: 17.5px; top: 380px; width: 315px; height: 40px; display: flex; align-items: center; justify-content: space-between; }
-.qz__left { position: relative; width: 90px; height: 38px; }
-.qz__skip {
-  position: absolute; left: -6px; top: 1px; height: 36px; display: flex; align-items: center; gap: 2px; border: 0; border-radius: 10px; background: transparent; cursor: pointer;
-  font: inherit; font-weight: 600; font-size: 13px; line-height: 18px; letter-spacing: -0.1px; -webkit-tap-highlight-color: transparent;
-  transition: background-color .15s, transform .18s cubic-bezier(.32,.72,0,1);
-}
-.qz__skip { padding: 0 12px; color: #666d85; font-weight: 400; }
-.qz__skip:disabled { pointer-events: none; }
-.qz__skip:active { background: #eceef3; transform: scale(.97); }
+/* footer (y 361 + 20): Prev · the live "View N results" centred · Next */
+.qz__foot { position: absolute; left: 17.5px; top: 380px; width: 315px; height: 40px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
+/* Prev / Next either side of the centred CTA: quiet text buttons with a chevron */
+.qz__step { height: 36px; display: inline-flex; align-items: center; gap: 2px; padding: 0 10px; border-radius: 10px; background: transparent; cursor: pointer;
+  font-weight: 600; font-size: 13px; line-height: 18px; letter-spacing: -0.1px; color: #666d85; -webkit-tap-highlight-color: transparent;
+  transition: background-color .15s, transform .18s cubic-bezier(.32,.72,0,1); }
+.qz__step--prev { justify-self: start; margin-left: -8px; padding-left: 4px; }
+.qz__step--fwd { justify-self: end; margin-right: -8px; padding-right: 4px; }
+.qz__step:active { background: #eceef3; transform: scale(.97); }
+.qz__step:disabled { pointer-events: none; }
 .qz__next {
   display: inline-flex; align-items: center; justify-content: center; text-align: center;   /* buttons are all:unset */
   min-width: 156px; height: 40px; padding: 0 20px; border: 0; border-radius: 8px; background: #262626; color: #fff; cursor: pointer;   /* the title's colour */
@@ -1093,3 +1092,6 @@ img.contain { object-fit: contain; }
 .rs__line.is-none b, .rs__line.is-none span, .rs__line.is-none em { color: #b9bdca; }
 .rs__tick--mark.is-none { background: rgba(34,34,34,.12); }
 .qz__next:disabled { background: #c9ccd6; cursor: default; transform: none; }
+
+/* pull past an end → the neighbouring question (app.js stretchStop): the next tab's label darkens once letting go would move on */
+.qz__tab.is-near { color: #101010; }

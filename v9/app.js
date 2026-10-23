@@ -1,4 +1,4 @@
-/* Brand Widget PLP — iteration 6 (/v6/) — iteration 4's ask-first TV widget restyled to "Find your perfect TV" (Figma 415:36689): Display / Size / Budget tabs over the same roster slider, Skip, and a live "View N TVs" that applies at any step; asset paths point to ../assets/ */
+/* Brand Widget PLP — iteration 6 (/v6/) — iteration 4's ask-first TV widget restyled to "Find your perfect TV" (Figma 415:36689) for "samsung tv": Display / Size / Year tabs over the roster slider, Prev / Next around a live "View N results", a shared-element TV between questions, and a folded summary over the refreshed grid; asset paths point to ../assets/ */
 /* Android: phone GPUs pay heavily for animated blur filters and backdrop blurs, so on Android the
    motion keeps its timing and curves but drops the blur (transform + opacity only); html.is-android
    switches the CSS backdrop blurs off. Nothing changes on iPhone or desktop. */
@@ -1507,7 +1507,7 @@ const PP = (() => {
      segment and the next question slides in from the right; Back mirrors it,
      keeping the answer. "Show my picks" → "Personalizing for you" (text over
      soft drifting glows) while the grid shimmers, then the rail rises in with
-     each brand's best match. Skip (first step) shows the brand rail as in 3. */
+     each brand's best match (iteration 4; v6 folds into a summary instead, see fold). */
   // opts: [label, value, hint, [photo, size]] — each answer is a real noon TV, cut out (assets/tv/*.webp), at a relative size
   const QUESTIONS = [
     // one TV whose picture wipes from one screen type to the next as the ruler moves (single + screen):
@@ -1563,17 +1563,18 @@ const PP = (() => {
       <div class="qz__tabs" role="tablist"><i class="qz__stop" aria-hidden="true"></i>${QUESTIONS.map((Q, k) => `<button class="qz__tab" type="button" role="tab" data-k="${k}">${Q.label}</button>`).join('')}</div></div>
     <div class="qz__stage"></div>
     <div class="qz__foot">
-      <span class="qz__left"><button class="qz__skip" type="button">Skip</button></span>
+      <button class="qz__step qz__step--prev" type="button"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.75 3.5 5.25 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Prev</button>
       <button class="qz__next" type="button">View results</button>
+      <button class="qz__step qz__step--fwd" type="button">Next<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.25 3.5 10.75 8l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     </div>`;
   bar.appendChild(ask);
   const qBar = ask.querySelector('.qz__top'), stage = ask.querySelector('.qz__stage'), foot = ask.querySelector('.qz__foot');
-  const qSkip = ask.querySelector('.qz__skip'), qNext = ask.querySelector('.qz__next');
+  const qPrev = ask.querySelector('.qz__step--prev'), qFwd = ask.querySelector('.qz__step--fwd'), qNext = ask.querySelector('.qz__next');
   const tabs = [...qBar.querySelectorAll('.qz__tab')], stop = qBar.querySelector('.qz__stop');
   const TV_BRAND = Object.fromEntries(TV_CARDS.map((c) => [c.brand, c]));
-  let answers = {}, step = 0, page = null, busy = false, personal = false, slider = null, moved = false;
+  let answers = {}, step = 0, page = null, busy = false, personal = false, slider = null, moved = false, wheelQuietUntil = 0;
   const seen = new Set();   // questions opened so far: their answer counts (an unopened one is "any")
-  const kept = new Set();   // questions confirmed with Next: coming back to one keeps Next, never a Skip that clears it
+  const kept = new Set();   // questions confirmed with Next, a tap or a pull-through
   const node = (html) => { const t = document.createElement('div'); t.innerHTML = html.trim(); return t.firstElementChild; };
   // the answer index a question counts with right now (null = any): opened, not skipped, and not a "No preference" / "Any"
   const pick = (i) => { const Q = QUESTIONS[i], k = seen.has(i) ? answers[Q.key + 'K'] : null; return k == null || Q.opts[k][1] === null ? null : k; };
@@ -1586,15 +1587,31 @@ const PP = (() => {
     // the deck's three photos load now, so they're ready when View folds the panel
     window.TV_DATA.filter(matches).slice(0, 3).forEach((p) => { if (warmed.has(p.img)) return; warmed.add(p.img); const im = new Image(); im.src = `${NOON}${p.img}.jpg?width=400`; });
   }
-  // Skip until this question's slider has moved, then Next; on the last question only the CTA is left once it has
+  // the footer: Prev on either side of the centred "View N results" and Next — no Prev on the first question, no Next on the last
   function paintLeft() {
-    const last = step === QUESTIONS.length - 1, label = moved ? 'Next' : 'Skip', hide = last && moved;
-    if (qSkip.textContent !== label) qSkip.textContent = label;
-    qSkip.disabled = hide; fadeEl(qSkip, hide ? 0 : 1, 160);
+    [[qPrev, step === 0], [qFwd, step === QUESTIONS.length - 1]].forEach(([b, off]) => {
+      if (b.disabled === off) return;
+      b.disabled = off; fadeEl(b, off ? 0 : 1, 160);
+    });
   }
-  function paintTabs() {
-    tabs.forEach((t, k) => { t.classList.toggle('is-cur', k === step); t.setAttribute('aria-selected', k === step); });
-    stop.style.transform = `translateX(${(step * 100).toFixed(0)}%)`;
+  const STOP_SETTLE = 'transform .56s cubic-bezier(.3,1.45,.5,1), width .56s cubic-bezier(.3,1.45,.5,1)';   // overshoots a touch, then sits
+  const stopW = () => (stop.parentElement.clientWidth - 6) / 3;   // one tab: the track's padding box minus its 3px insets, in thirds
+  function paintTabs(elastic) {
+    tabs.forEach((t, k) => { t.classList.toggle('is-cur', k === step); t.setAttribute('aria-selected', k === step); t.classList.remove('is-near'); });
+    stop.style.transition = elastic ? STOP_SETTLE : '';
+    stop.style.width = '';
+    stop.style.transform = `translateX(${(step * stopW()).toFixed(2)}px)`;
+  }
+  /* Pulling past an end stretches the stop toward the neighbouring tab (up to 3/4 of a tab), as if the edge were being
+     pulled into it; once letting go would move on, that tab's label darkens. Let go and the stop's back edge snaps
+     across (paintTabs elastic); let go early and it springs back to its tab. */
+  function stretchStop(i, d, t, armed) {
+    const w = stopW(), reach = w * 0.75 * t;
+    if (!t) { stop.style.transition = STOP_SETTLE; stop.style.width = ''; stop.style.transform = `translateX(${(i * w).toFixed(2)}px)`; tabs.forEach((tb) => tb.classList.remove('is-near')); return; }
+    stop.style.transition = 'none';
+    stop.style.width = `${(w + reach).toFixed(2)}px`;
+    stop.style.transform = `translateX(${(i * w - (d < 0 ? reach : 0)).toFixed(2)}px)`;
+    tabs.forEach((tb, k) => tb.classList.toggle('is-near', armed && k === i + d));
   }
   const fadeEl = (el, to, ms = 200) => PP.commit(el, [el.animate([{ opacity: +getComputedStyle(el).opacity }, { opacity: to }], { duration: ms, easing: OUT, fill: 'both' })], { opacity: to });
 
@@ -1759,6 +1776,7 @@ const PP = (() => {
       }
       const past = x > 0.5 || x < X_MIN - 0.5;
       if (past !== pastEdge) { pastEdge = past; if (past && sound) Haptics.gesture('edge'); }
+      paintPast();
       select(slot, sound);
       waveKick();
     }
@@ -1833,7 +1851,25 @@ const PP = (() => {
       if (Math.abs(d) < 0.05 && Math.abs(v) < 5) { x = anim.target; v = 0; anim = null; render(); settleUi(); return; }
       render(); raf = requestAnimationFrame(stepF);
     }
+    /* Past the ends: the rubber band is also a door. A gesture that BEGAN at the last answer and pulls on past it
+       far enough (PAST.GO of stretch, ~140px of finger) or flicks hard opens the next question; the same at the first
+       answer opens the previous one. Below that it springs back as before. The pull shows in the tabs: the stop
+       stretches toward the neighbouring tab (pg.onPull), with a tick once letting go would move on. */
+    const PAST = { GO: 44, FLICK: 16, V: 700, AT: 6 };
+    let gStart = null, pulling = 0, wasArmed = false;   // where the current gesture began (x), for "did it start at the end?"
+    const atEnd = (d) => gStart != null && Math.abs(gStart - (d > 0 ? X_MIN : 0)) < PAST.AT;
+    function paintPast() {
+      const d = x < X_MIN ? 1 : x > 0 ? -1 : 0, o = d > 0 ? X_MIN - x : d < 0 ? x : 0;
+      const ok = !!d && atEnd(d) && !!(pg.canPast && pg.canPast(d)), t = ok ? Math.min(1, o / PAST.GO) : 0, armed = ok && o >= PAST.GO;
+      if (armed && !wasArmed) Haptics.snap();
+      wasArmed = armed;
+      if (t || pulling) { if (pg.onPull) pg.onPull(d || pulling, t, armed); pulling = t ? d : 0; }
+    }
+    const passOn = (d, over, vel) => pg.onPast && atEnd(d) && (over >= PAST.GO || (over >= PAST.FLICK && vel * -d > PAST.V)) && pg.onPast(d);
     function release(vel) {
+      const over = x < X_MIN ? [1, X_MIN - x] : x > 0 ? [-1, x] : null, went = !!over && passOn(over[0], over[1], vel);
+      gStart = null;
+      if (went) return;
       if (x > 0) return goToX(-nearestFit(Q.none, 0, 1) * RS.PITCH, vel);
       if (x < X_MIN) return goToX(-nearestFit(Q.none, N - 1, -1) * RS.PITCH, vel);
       const nearest = Math.round(-x / RS.PITCH), proj = Math.round(-(x + vel * 0.2) / RS.PITCH);
@@ -1841,7 +1877,7 @@ const PP = (() => {
       goToX(-nearestFit(Q.none, t, d) * RS.PITCH, vel);   // answers with no TVs are skipped, onward in the direction of travel
     }
     function lock(e) {
-      anim = null; drag.locked = true; drag.x0 = x; drag.sx = e.clientX;
+      anim = null; drag.locked = true; drag.x0 = x; drag.sx = e.clientX; gStart = x;
       try { rs.setPointerCapture(e.pointerId); } catch (_) {}
       rs.classList.add('is-drag');
     }
@@ -1883,6 +1919,19 @@ const PP = (() => {
       release(e.type === 'pointercancel' ? 0 : (b[0] > a[0] ? ((b[1] - a[1]) / (b[0] - a[0])) * 1000 : 0));
     };
     rs.addEventListener('pointerup', endDrag); rs.addEventListener('pointercancel', endDrag);
+    let wRaw = null, wT = 0, wV = 0, wAt = 0;
+    rs.addEventListener('wheel', (e) => {
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;   // vertical: the page scrolls
+      e.preventDefault();
+      const now = performance.now();
+      // after a pull-through the swipe's momentum keeps coming: swallow it until the stream goes quiet
+      if (now < wheelQuietUntil) { wheelQuietUntil = now + 180; return; }
+      if (wRaw == null) { anim = null; wRaw = x; gStart = x; wV = 0; }
+      wRaw -= e.deltaX; moved(); x = bound(wRaw);
+      const dt = Math.max(8, now - (wAt || now - 16)); wV += ((-e.deltaX / dt) * 1000 - wV) * 0.4; wAt = now;
+      render();
+      clearTimeout(wT); wT = setTimeout(() => { wRaw = null; wAt = 0; release(wV * 0.6); }, 140);
+    }, { passive: false });
     rs.addEventListener('keydown', (e) => {
       if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
       e.preventDefault(); goToX(-stepFit(sel, e.key === 'ArrowRight' ? 1 : -1) * RS.PITCH, 0);
@@ -1907,7 +1956,8 @@ const PP = (() => {
     return k;
   }
   const shared = (pg) => pg.querySelector('.rsi--screen .scr') || pg.querySelector('.rsi--single .rsi__img') || pg.querySelector('.rsi.is-sel .rsi__img');
-  function fly(fromEl, toEl, dir, late = false) {   // late: the new look arrives near the end (a TV becoming a photo card)
+  const ELASTIC = spr(0.66, 0.56);   // the pull-through hand-off: a visible overshoot, then it settles
+  function fly(fromEl, toEl, dir, late = false, elastic = false) {   // late: the new look arrives near the end (a TV becoming a photo card)
     if (!fromEl || !toEl) return;
     const host = ask.getBoundingClientRect(), z = host.width / ask.offsetWidth || 1;
     const a = fromEl.getBoundingClientRect(), b = toEl.getBoundingClientRect();
@@ -1918,7 +1968,7 @@ const PP = (() => {
     ask.appendChild(f);
     fromEl.style.visibility = 'hidden'; toEl.style.visibility = 'hidden';
     const k = a.width / b.width, dx = (a.left - b.left) / z, dy = (a.top - b.top) / z;
-    const travel = springAnim(f, 0, 1, (p) => ({ transform: `translate(${(dx * (1 - p)).toFixed(2)}px,${(dy * (1 - p)).toFixed(2)}px) scale(${(k + (1 - k) * p).toFixed(4)})` }), FLY);
+    const travel = springAnim(f, 0, 1, (p) => ({ transform: `translate(${(dx * (1 - p)).toFixed(2)}px,${(dy * (1 - p)).toFixed(2)}px) scale(${(k + (1 - k) * p).toFixed(4)})` }), elastic ? ELASTIC : FLY);
     const lift = inner.animate([{ transform: 'none' }, { transform: 'translateY(-6px) scale(1.045)', offset: 0.42 }, { transform: 'none' }], { duration: 560, easing: 'cubic-bezier(.37,0,.63,1)' });
     if (!IS_ANDROID) f.animate([{ filter: 'drop-shadow(0 8px 10px rgba(29,37,57,.12))' }, { filter: 'drop-shadow(0 22px 24px rgba(29,37,57,.2))', offset: 0.42 }, { filter: 'drop-shadow(0 8px 10px rgba(29,37,57,.12))' }], { duration: 560, easing: 'cubic-bezier(.37,0,.63,1)' });
     if (late) cNew.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, delay: 200, easing: 'cubic-bezier(.45,0,.55,1)', fill: 'both' });
@@ -1928,15 +1978,17 @@ const PP = (() => {
   }
   // everything but the shared TV: the readout rolls over, the ruler glides with the travel, the glow swells back,
   // and a row's neighbours open out from behind the landed set
-  function swapAround(old, next, dir) {
+  function swapAround(old, next, dir, elastic = false) {
     old.getAnimations({ subtree: true }).forEach((x) => x.cancel());
     const oRead = old.querySelector('.rs__read'), oRuler = old.querySelector('.rs__ruler');
     oRead.animate([{ transform: 'none', opacity: 1 }, { transform: 'translateY(-10px)', opacity: 0 }], { duration: 200, easing: OUT, fill: 'both' });
     oRuler.animate([{ transform: 'none', opacity: 1 }, { transform: `translateX(${-dir * 32}px)`, opacity: 0 }], { duration: 240, easing: OUT, fill: 'both' });
     PP.commit(old, [old.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 240, delay: 40, easing: OUT, fill: 'both' })], { opacity: 0 }).then(() => old.remove());
     const nRead = next.querySelector('.rs__read'), nRuler = next.querySelector('.rs__ruler'), glow = next.querySelector('.rs__sel, .rs__amb');
-    PP.commit(nRead, [nRead.animate([{ transform: 'translateY(12px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 340, delay: 170, easing: EASE_OUT, fill: 'both' })], { opacity: '', transform: '' });
-    PP.commit(nRuler, [springAnim(nRuler, 0, 1, (p) => ({ transform: `translateX(${(dir * 32 * (1 - p)).toFixed(2)}px)` }), PAGE, 110),
+    if (elastic) PP.commit(nRead, [springAnim(nRead, 0, 1, (p) => ({ transform: `translateX(${(dir * 36 * (1 - p)).toFixed(2)}px)` }), ELASTIC, 90),
+      nRead.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 240, delay: 90, easing: OUT, fill: 'both' })], { opacity: '', transform: '' });
+    else PP.commit(nRead, [nRead.animate([{ transform: 'translateY(12px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 340, delay: 170, easing: EASE_OUT, fill: 'both' })], { opacity: '', transform: '' });
+    PP.commit(nRuler, [springAnim(nRuler, 0, 1, (p) => ({ transform: `translateX(${(dir * (elastic ? 56 : 32) * (1 - p)).toFixed(2)}px)` }), elastic ? ELASTIC : PAGE, elastic ? 60 : 110),
       nRuler.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, delay: 110, easing: OUT, fill: 'both' })], { opacity: '', transform: '' });
     if (glow) glow.animate([{ opacity: 0, scale: '0.8' }, { opacity: 1, scale: '1' }], { duration: 420, delay: 120, easing: EASE_OUT, fill: 'backwards' });
     const sel = next.querySelector('.rsi.is-sel');
@@ -1947,7 +1999,7 @@ const PP = (() => {
   }
 
   // one question on the stage; dir 1 = from the right, −1 = from the left, 0 = the first one rising in
-  function show(i, dir) {
+  function show(i, dir, elastic = false) {   // elastic: arrived by pulling past an end — the new question springs into place
     step = i; busy = true;
     const Q = QUESTIONS[i];
     // each answer's lines, with the other questions' answers as they stand now; answers no TV fits are dimmed and
@@ -1957,7 +2009,7 @@ const PP = (() => {
     Q.none = stuck ? Q.opts.map(() => false) : none;
     let k0 = answers[Q.key + 'K'] != null ? answers[Q.key + 'K'] : Q.def;
     if (Q.none[k0]) k0 = nearestFit(Q.none, k0, 1);   // the question opens on the closest answer that has TVs
-    seen.add(i); moved = kept.has(i) || k0 !== Q.def; paintTabs();   // an answer already moved off the default keeps Next
+    seen.add(i); moved = kept.has(i) || k0 !== Q.def; paintTabs(elastic);   // an answer already moved off the default keeps Next
     const next = node(`<div class="qz__page qz__page--${Q.key}">
       <div class="rs" role="${Q.single ? 'slider' : 'listbox'}" tabindex="0" aria-label="${Q.q}">
         ${Q.screen ? `<i class="rs__amb" aria-hidden="true">${Q.opts.map((o) => `<i style="--c:${o[3][1]}"></i>`).join('')}</i>` : '<i class="rs__sel" aria-hidden="true"></i>'}
@@ -1975,9 +2027,18 @@ const PP = (() => {
     </div>`);
     const old = page, from = old ? shared(old) : null; page = next; stage.appendChild(next);
     if (slider) slider.stop();
-    // every answer the slider lands on counts at once; moving off the starting answer turns Skip into Next
+    // every answer the slider lands on counts at once
     next.onSel = (k) => { answers[Q.key + 'K'] = k; if (k !== k0) moved = true; if (page === next) { paintCta(); paintLeft(); } };
     // a tap chooses: the answer counts and, once it has landed, the next question slides in (Display → Size → Budget)
+    // pulled past an end: the answer it was on counts (going forward) and the neighbouring question springs in
+    next.canPast = (d) => i + d >= 0 && i + d < QUESTIONS.length;
+    next.onPull = (d, t, armed) => { if (page === next && !busy) stretchStop(i, d, t, armed); };
+    next.onPast = (d) => {
+      const j = i + d; if (j < 0 || j >= QUESTIONS.length || busy || page !== next) return false;
+      if (d > 0) { moved = true; kept.add(i); }
+      wheelQuietUntil = performance.now() + 600;
+      show(j, d, true); return true;
+    };
     next.onTap = (k) => {
       answers[Q.key + 'K'] = k; moved = true; kept.add(i); paintCta(); paintLeft();
       if (i < QUESTIONS.length - 1) later(380, () => { if (page === next && !busy) show(i + 1, 1); });
@@ -1985,8 +2046,8 @@ const PP = (() => {
     slider = makeRoster(next, Q, k0);
     paintCta();
     if (old && dir && !PP.reduce.matches) {
-      if (from) fly(from, shared(next), dir);
-      swapAround(old, next, dir);
+      if (from) fly(from, shared(next), dir, false, elastic);
+      swapAround(old, next, dir, elastic);
       later(560, () => { busy = false; });
     } else if (old) {   // reduced motion: a plain crossfade
       old.getAnimations().forEach((a) => a.cancel());
@@ -2011,14 +2072,9 @@ const PP = (() => {
     });
     fold();
   });
-  // Skip: this question doesn't count (the slider goes back to its start); Next keeps the answer — both move on,
-  // and on the last question Skip is the same as View
-  qSkip.addEventListener('click', () => {
-    if (busy) return;
-    const Q = QUESTIONS[step];
-    if (!moved) { answers[Q.key + 'K'] = null; seen.delete(step); kept.delete(step); } else kept.add(step);
-    if (step + 1 < QUESTIONS.length) show(step + 1, 1); else qNext.click();
-  });
+  // Prev / Next: the answer on screen counts (every question has its own "any" answer for no preference)
+  qPrev.addEventListener('click', () => { if (!busy && step > 0) show(step - 1, -1); });
+  qFwd.addEventListener('click', () => { if (busy || step + 1 >= QUESTIONS.length) return; kept.add(step); show(step + 1, 1); });
   // a tab opens its question; the slider comes back where it was left
   tabs.forEach((t, k) => t.addEventListener('click', () => {
     if (busy || k === step) return;
@@ -2029,7 +2085,7 @@ const PP = (() => {
     cards.forEach((c) => { c.style.opacity = 0; });
     hTitle.textContent = 'Find your perfect TV'; seen.clear(); kept.clear();
     [qBar, stage, foot].forEach((el) => { el.getAnimations().forEach((a) => a.cancel()); el.style.opacity = ''; el.style.transform = ''; });
-    qSkip.style.opacity = 1; qSkip.disabled = false;
+    [qPrev, qFwd].forEach((b) => { b.style.opacity = ''; b.disabled = false; });
     show(0, 0);
   }
   /* View results: no in-between beat and no picks rail. One readable sequence, cause before effect:
