@@ -1365,3 +1365,7 @@ img.contain { object-fit: contain; }
 .qz__steps i.is-chip { height: 20px; border-radius: 10px; background: #eef0f4; color: #1d2539; }
 .qz__steps i.is-chip b { display: inline-block; padding: 0 7px; }
 .qz__top .qz__steps { height: 20px; }   /* the row keeps a chip's height, so dots alone stay centred on the arrows */
+/* the chips are tappable (they open their question) */
+.qz__top { pointer-events: auto; }
+.qz__steps i.is-chip { cursor: pointer; -webkit-tap-highlight-color: transparent; transition: width .42s cubic-bezier(.22,1,.36,1), height .3s cubic-bezier(.22,1,.36,1), border-radius .3s, background-color .2s ease, scale .18s cubic-bezier(.32,.72,0,1); }
+.qz__steps i.is-chip:active { scale: .94; background: #e3e6ec; }

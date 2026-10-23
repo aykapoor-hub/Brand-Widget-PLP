@@ -1944,6 +1944,19 @@ const PP = (() => {
     if (step + 1 < QUESTIONS.length) { clearTimeout(liveT); plp.dispatchEvent(new CustomEvent('plp:personal', { detail: { answers, at: 680, shimmer: true } })); }
     later(120, () => (step + 1 < QUESTIONS.length ? show(step + 1, 1) : personalize()));   // the push starts while the segment fills
   }
+  /* iteration 7: an answer chip is a shortcut — tapping it opens that question with its answer on the
+     slider; the answer being looked at is kept (as › / ‹ do), and going forward reloads the grid
+     (shimmer) the way › does */
+  qBar.querySelector('.qz__steps').addEventListener('click', (e) => {
+    const pill = e.target.closest('.qz__steps i'), k = fills.indexOf(pill);
+    if (!pill || !pill.classList.contains('is-chip') || k < 0 || k === step || busy || !slider || !box.classList.contains('is-asking')) return;
+    Haptics.tick(); clearTimeout(autoT);
+    const Q = QUESTIONS[step], j = slider.k, [label, val] = Q.opts[j];
+    answers[Q.key] = val; answers[Q.key + 'K'] = j; answers[Q.key + 'Label'] = val === null ? 'Any picture' : label;
+    if (k > step) { clearTimeout(liveT); plp.dispatchEvent(new CustomEvent('plp:personal', { detail: { answers, at: 680, shimmer: true } })); }
+    busy = true;
+    later(120, () => show(k, k > step ? 1 : -1));
+  });
   qBack.addEventListener('click', () => {
     if (busy || step === 0) return;
     Haptics.tick();
