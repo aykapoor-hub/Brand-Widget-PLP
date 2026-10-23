@@ -1369,3 +1369,20 @@ img.contain { object-fit: contain; }
 .qz__top { pointer-events: auto; }
 .qz__steps i.is-chip { cursor: pointer; -webkit-tap-highlight-color: transparent; transition: width .42s cubic-bezier(.22,1,.36,1), height .3s cubic-bezier(.22,1,.36,1), border-radius .3s, background-color .2s ease, scale .18s cubic-bezier(.32,.72,0,1); }
 .qz__steps i.is-chip:active { scale: .94; background: #e3e6ec; }
+
+/* ── Iteration 7: the indicator as ONE segmented track (it read as three unrelated shapes) ──────────
+   A 28px #f3f4f7 track (radius 14, 3 inset, 3 between) under the ruler, centred on the arrows:
+   answered questions = their short answer in ink (Noontree SemiBold 11/22, 9 each side, no fill);
+   the current question = a raised white 30×22 thumb (soft shadow) holding a 14×6 ink bar; to come = a
+   6px #c9cdd8 dot in a 22px slot. Widths ease (420ms) as the question changes; chips still tap. */
+.qz__top .qz__steps { top: 0; height: 28px; padding: 3px; gap: 3px; border-radius: 14px; background: #f3f4f7; box-sizing: border-box; }
+.qz__steps i { width: 22px; height: 22px; border-radius: 11px; background: transparent; }
+.qz__steps i::after { content: ''; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px; border-radius: 3px; background: #c9cdd8;
+  transition: width .42s cubic-bezier(.22,1,.36,1), margin .42s cubic-bezier(.22,1,.36,1), background-color .25s ease; }
+.qz__steps i.is-done { background: transparent; }
+.qz__steps i.is-cur { width: 30px; height: 22px; border-radius: 11px; background: #fff; box-shadow: 0 1px 3px rgba(29,37,57,.14), 0 0 0 .5px rgba(29,37,57,.04); }
+.qz__steps i.is-cur::after { width: 14px; margin-left: -7px; background: #1d2539; }
+.qz__steps i.is-chip { height: 22px; background: transparent; color: #1d2539; }
+.qz__steps i.is-chip::after { display: none; }
+.qz__steps i.is-chip b { padding: 0 9px; line-height: 22px; }
+.qz__steps i.is-chip:active { background: rgba(29,37,57,.06); }
