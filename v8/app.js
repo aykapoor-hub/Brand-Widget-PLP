@@ -2078,16 +2078,15 @@ const PP = (() => {
   /* Apply → a full-screen "Personalizing for you" → the widget collapses (iteration 8):
        · 0     the answer is kept and the grid starts reloading; the bottom nav slides out of frame (move
                spring); a white layer fades over the PLP below its header — the search bar, marketplace
-               tabs and chips stay — down to the screen's bottom (280ms out-cubic)
+               tabs and chips stay — down to the screen's bottom (the way in: see qApply below)
        · the layer: a faint dot grid (2px, 16 apart) that slow, wide, soft ripples keep crossing from
-               the screen's centre (190px/s, every 1.05s), fading toward the edges; a round cool glow
+               the screen's centre (240px/s, every 0.85s; the dots a wave passes light blue and swell), fading toward the edges; a round cool glow
                breathing behind the one line of text — "Personalizing for you" (Noontree SemiBold 20,
                ink, a light sweep crossing it every 1.6s) over a progress line that fills over the beat — centred on the screen
-       · 320   hidden under it, the widget becomes the collapsed bar (64) and the grid sits up under it
-       · 2080  the matched cards are already in place under the layer
-       · 2600  the reveal (see below)
+       · 700   hidden under it (the white is opaque by 640), the widget becomes the collapsed bar (64) and the grid sits up under it
+       · 2800  the reveal (see below)
      Edit (on the collapsed bar) opens the widget back on the last question. */
-  const PZ8 = { HOLD: 2600, UNDER: 320, COL_BAR: 64, COL_H: 73, DOT: 16, SPEED: 240, WAVE: 56, EVERY: 0.85, REACH: 640 };
+  const PZ8 = { HOLD: 2800, UNDER: 700, COL_BAR: 64, COL_H: 73, DOT: 16, SPEED: 240, WAVE: 56, EVERY: 0.85, REACH: 640 };
   const qd = node(`<div class="qd">
       <span class="qd__ic" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="9.5" rx="1.6" stroke="#1d2539" stroke-width="1.5"/><path d="M6.5 15h5" stroke="#1d2539" stroke-width="1.5" stroke-linecap="round"/></svg></span>
       <span class="qd__txt"><b class="qd__t">Your TV matches</b><span class="qd__s"></span></span>
@@ -2113,9 +2112,9 @@ const PP = (() => {
         }
         k = Math.min(1, k);
         // the grid at rest is faint ink; a passing wave lights its dots in the glow's blue and swells them
-        g.fillStyle = '#1d2539'; g.globalAlpha = 0.06 * near * (1 - k);
+        g.fillStyle = '#1d2539'; g.globalAlpha = 0.06 * near * (1 - 0.6 * k);
         g.beginPath(); g.arc(x, y, 1, 0, Math.PI * 2); g.fill();
-        if (k > 0.01) { g.fillStyle = '#5a6fe0'; g.globalAlpha = 0.55 * k * near; g.beginPath(); g.arc(x, y, 1 + 0.85 * k, 0, Math.PI * 2); g.fill(); }
+        if (k > 0.01) { g.fillStyle = '#5a6fe0'; g.globalAlpha = 0.3 * k * near; g.beginPath(); g.arc(x, y, 1 + 0.45 * k, 0, Math.PI * 2); g.fill(); }
       }
       if (now - t0 < ms && canvas.isConnected) requestAnimationFrame(frame);
     };
@@ -2142,25 +2141,32 @@ const PP = (() => {
     const W = pz.offsetWidth, Hh = pz.offsetHeight, cy = Hh / 2;   // the centre of the empty space (the layer, under the chips)
     pz.style.setProperty('--cy', `${cy}px`);
     ripple(pz.querySelector('canvas'), W, Hh, W / 2, cy, PZ8.HOLD + 600);
-    const title = pz.querySelector('.pzf__t');
-    PP.commit(pz, [pz.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 280, easing: 'cubic-bezier(.33,1,.68,1)', fill: 'both' })], { opacity: 1 });
-    /* the line arrives whole (from 100ms): it rises 8 → 0 and sharpens (blur 4 → 0) on one decelerating
-       curve (420ms) as it fades in; then a light band sweeps across it to show it's loading (styles.css .pzf__s) */
+    const title = pz.querySelector('.pzf__t'), DEC = 'cubic-bezier(.2,0,0,1)', OUTC = 'cubic-bezier(.33,1,.68,1)';
+    /* the way in is a few soft, overlapping beats, not one cut:
+         ·   0  the question dissolves where it is — fades, lifts 4 and softens (blur 4), 260ms in-out
+         ·  80  the white eases in over it (560ms, a soft S-curve), the glow blooming from 80% (900ms, decelerating)
+         · 200  the dot grid fades in under the glow (600ms)
+         · 320  the line settles in: rises 10 → 0 and sharpens (blur 6 → 0) on one decelerating curve (640ms),
+                fading in (460ms, out-cubic); then a light band sweeps across it (styles.css .pzf__s)
+         · 420  the progress line follows it (rise 6 + fade, 420ms) and from 500 fills over the beat */
+    [qTT, stage, qBar, qActs].forEach((el) => el.animate([{ opacity: 1, translate: '0 0', filter: 'blur(0)' }, { opacity: 0, translate: '0 -4px', filter: 'blur(4px)' }], { duration: 260, easing: 'cubic-bezier(.65,0,.35,1)', fill: 'forwards' }));
+    PP.commit(pz, [pz.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 560, delay: 80, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'both' })], { opacity: 1 });
+    pz.querySelector('.pzf__glow').animate([{ scale: 0.8 }, { scale: 1 }], { duration: 900, delay: 80, easing: DEC, fill: 'backwards' });
+    pz.querySelector('.pzf__dots').animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: 200, easing: OUTC, fill: 'backwards' });
     const line = title.querySelector('.pzf__s');
     title.style.opacity = 1;
-    line.animate([{ translate: '0 8px', filter: 'blur(4px)', opacity: 0 }, { translate: '0 0', filter: 'blur(0)', opacity: 1 }],
-      { duration: 420, delay: 100, easing: 'cubic-bezier(.2,0,0,1)', fill: 'backwards' });
-    /* the progress line arrives 60ms after the text (rise 6 + fade, 360ms) and fills over the whole beat like
-       real work: a quick start (32% by 0.5s), a slower middle, the last stretch landing at 2.45s — just
-       before the page lifts — each stretch on its own easing so the fill never stops dead */
+    line.animate([{ translate: '0 10px', filter: 'blur(6px)' }, { translate: '0 0', filter: 'blur(0)' }], { duration: 640, delay: 320, easing: DEC, fill: 'backwards' });
+    line.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 460, delay: 320, easing: OUTC, fill: 'backwards' });
+    /* the progress line fills over the beat like real work: a quick start, a slower middle, the last stretch
+       landing 150ms before the page lifts — each stretch on its own easing so the fill never stops dead */
     const pbar = pz.querySelector('.pzf__bar'), pfill = pbar.firstChild;
-    pbar.animate([{ translate: '0 6px', opacity: 0 }, { translate: '0 0', opacity: 1 }], { duration: 360, delay: 160, easing: 'cubic-bezier(.2,0,0,1)', fill: 'backwards' });
+    pbar.animate([{ translate: '0 6px', opacity: 0 }, { translate: '0 0', opacity: 1 }], { duration: 420, delay: 420, easing: DEC, fill: 'backwards' });
     pfill.animate([
       { translate: '-100% 0', easing: 'cubic-bezier(.3,.6,.5,1)' },
       { translate: '-68% 0', offset: 0.2, easing: 'cubic-bezier(.45,.2,.55,.9)' },
       { translate: '-30% 0', offset: 0.72, easing: 'cubic-bezier(.4,.3,.3,1)' },
       { translate: '0 0' },
-    ], { duration: PZ8.HOLD - 400, delay: 250, fill: 'both' });
+    ], { duration: PZ8.HOLD - 650, delay: 500, fill: 'both' });
     // hidden under the layer: the widget becomes the collapsed bar, the grid sits up under it
     later(PZ8.UNDER, () => {
       [qBar, stage, qActs, qTT].forEach((el) => { el.getAnimations().forEach((a) => a.cancel()); el.style.opacity = 0; });
@@ -2171,13 +2177,13 @@ const PP = (() => {
       void bar.offsetWidth; bar.style.transition = '';
     });
     /* the exit and the reveal, overlapped into one breath:
-         · 2600  the line lifts 6 and fades (260ms, in-out cubic); the glow and the dot
+         · 2800  the line lifts 6 and fades (260ms, in-out cubic); the glow and the dot
                  grid fade with them (360ms) — so nothing is left on the white but white
-         · 2870  the white fades away (480ms, in-out cubic) as the page under it settles: the collapsed bar
+         · 3070  the white fades away (480ms, in-out cubic) as the page under it settles: the collapsed bar
                  rises 12 → 0 on one decelerating curve (600ms); the grid's skeletons stay still (sliding
                  the whole grid while its shimmers run re-rasterised it — a 500ms frame); the nav rides
                  back in on the move spring
-         · 3320  the matched cards rise in over their skeletons, staggered (the PLP's own swap reveal) */
+         · 3520  the matched cards rise in over their skeletons, staggered (the PLP's own swap reveal) */
     later(PZ8.HOLD, () => {
       const EASE = 'cubic-bezier(.2,0,0,1)', IO = 'cubic-bezier(.65,0,.35,1)', glow = pz.querySelector('.pzf__glow'), dots = pz.querySelector('.pzf__dots');
       [line, pbar].forEach((el, i) => el.animate([{ translate: '0 0', opacity: 1 }, { translate: '0 -6px', opacity: 0 }], { duration: 260, delay: i * 30, easing: IO, fill: 'forwards' }));

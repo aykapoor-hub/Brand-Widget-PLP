@@ -1420,7 +1420,7 @@ img.contain { object-fit: contain; }
   background: radial-gradient(closest-side, rgba(128,146,232,.20), rgba(128,146,232,.08) 52%, rgba(128,146,232,0)); animation: pz8Breathe 1.9s cubic-bezier(.45,0,.55,1) infinite alternate; }
 @keyframes pz8Breathe { from { transform: scale(.92); opacity: .75; } to { transform: scale(1.08); opacity: 1; } }
 /* the one line: Noontree SemiBold 20/26 ink, centred in the empty space; it arrives whole (app.js), then a
-   loading shimmer glides through it — one wide light band (about 0.9× the line, #d6dae6 at its core) whose
+   loading shimmer glides through it — one wide light band (about 0.9× the line, at 40% strength: #677080 at its core) whose
    edges feather out on a raised cosine (17 stops), so it has no visible edge; it travels at a steady pace
    (linear, 1.6s a pass: ~1s across the text, ~0.6s off it as its rest) from fully off the left to fully
    off the right, looping seamlessly. From 0.45s, as the line has settled. The band is the text's own
@@ -1428,7 +1428,7 @@ img.contain { object-fit: contain; }
 .pzf__t { position: absolute; left: 0; right: 0; top: var(--cy, 50%); margin-top: -13px; text-align: center; opacity: 0; white-space: nowrap;
   font-weight: 600; font-size: 20px; line-height: 26px; letter-spacing: -0.3px; color: #1d2539; }
 .pzf__s { display: inline-block; color: transparent; -webkit-text-fill-color: transparent;
-  background: linear-gradient(100deg, #1d2539 0%, rgb(29,37,57) 38.75%, rgb(36,44,64) 40.16%, rgb(56,64,82) 41.56%, rgb(86,93,110) 42.97%, rgb(122,128,144) 44.38%, rgb(157,162,177) 45.78%, rgb(187,191,205) 47.19%, rgb(207,211,223) 48.59%, rgb(214,218,230) 50.00%, rgb(207,211,223) 51.41%, rgb(187,191,205) 52.81%, rgb(157,162,177) 54.22%, rgb(122,128,144) 55.62%, rgb(86,93,110) 57.03%, rgb(56,64,82) 58.44%, rgb(36,44,64) 59.84%, rgb(29,37,57) 61.25%, #1d2539 100%) 100% 0 / 400% 100% no-repeat;
+  background: linear-gradient(100deg, #1d2539 0%, rgb(29,37,57) 38.75%, rgb(32,40,60) 40.16%, rgb(40,48,67) 41.56%, rgb(52,59,78) 42.97%, rgb(66,73,92) 44.38%, rgb(80,87,105) 45.78%, rgb(92,99,116) 47.19%, rgb(100,107,124) 48.59%, rgb(103,109,126) 50.00%, rgb(100,107,124) 51.41%, rgb(92,99,116) 52.81%, rgb(80,87,105) 54.22%, rgb(66,73,92) 55.62%, rgb(52,59,78) 57.03%, rgb(40,48,67) 58.44%, rgb(32,40,60) 59.84%, rgb(29,37,57) 61.25%, #1d2539 100%) 100% 0 / 400% 100% no-repeat;
   -webkit-background-clip: text; background-clip: text;
   animation: pzfShine 1.6s linear .45s infinite; }
 @keyframes pzfShine { from { background-position: 100% 0; } to { background-position: 0% 0; } }
