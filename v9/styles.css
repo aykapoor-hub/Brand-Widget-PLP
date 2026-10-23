@@ -961,7 +961,7 @@ img.contain { object-fit: contain; }
    pill track with a pink hairline; the current tab is a white stop with a soft shadow that slides along it */
 .qz__top { position: absolute; left: 0; top: 14px; width: 350px; }   /* panel coords are Figma − 1 (inside the 1px border) */
 .qz__title { height: 32px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 22px; line-height: 1.2; letter-spacing: -0.44px; color: #262626; }
-.qz__tabs { position: relative; display: flex; margin: 12px 17px 0; padding: 3px; border: 1px solid #f6b9b7; border-radius: 62px; background: #fff; }
+.qz__tabs { position: relative; display: flex; width: 269px; margin: 12px auto 0; padding: 3px;   /* 85% of Figma's 316, centred */ border: 1px solid #f6b9b7; border-radius: 62px; background: #fff; }
 .qz__stop { position: absolute; left: 3px; top: 3px; width: calc((100% - 6px) / 3); height: 32px; border-radius: 73px; background: #fff;
   box-shadow: 0 1.125px 3.375px rgba(16,22,40,.08), inset 1px 2px 2px rgba(0,0,0,.04); transition: transform .42s cubic-bezier(.22,1,.36,1); }
 .qz__tab { position: relative; flex: 1 0 0; min-width: 1px; height: 32px; display: flex; align-items: center; justify-content: center; text-align: center; border: 0; border-radius: 73px; background: transparent; cursor: pointer; font: inherit;

@@ -1544,7 +1544,10 @@ const PP = (() => {
     if (i === 1) { const d = parseInt(o[0], 10), m = (x) => (d * 0.0254 * x).toFixed(1);   // the label's inches: 40 … 85
       hint = `Sit ${m(1)}–${m(1.5)} m away · ${Math.round(d * 2.54 * 0.8716)} cm wide`; }
     const list = window.TV_DATA.filter((p) => fits(p, i, k) && QUESTIONS.every((Q, j) => j === i || fits(p, j, pick(j))));
-    const data = list.length ? `from ${AED}${money(Math.min(...list.map((p) => +p.price)))} · ${list.length} TV${list.length === 1 ? '' : 's'}` : 'None with your other answers';
+    // no TV fits: say which of the other answers it clashes with ("Not available with OLED · 55”")
+    const others = QUESTIONS.map((Q, j) => (j !== i && pick(j) != null ? Q.opts[pick(j)][0] : null)).filter(Boolean);
+    const data = list.length ? `from ${AED}${money(Math.min(...list.map((p) => +p.price)))} · ${list.length} TV${list.length === 1 ? '' : 's'}`
+      : others.length ? `Not available with ${others.join(' · ')}` : 'Not available';
     return { hint, data, n: list.length };
   }
   const PAGE = spr(0.5, 1), SNAP = spr(0.3, 0.86);
